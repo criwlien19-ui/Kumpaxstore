@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kumpax Store</title>
+  <meta name="description"
+    content="Kumpax Store — Le shopping premium au Sénégal. Smartphones, vêtements, électroménager et plus, livrés en 24-48h." />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- React & Babel (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!--
+    ═══════════════════════════════════════════════
+    KUMPAX STORE — Scripts
+    Ordre de chargement important :
+    1. data.js       → Constantes & données
+    2. api.js        → Couche API Odoo
+    3. contexts.js   → Contextes React (Cart, Wish, Toast)
+    4. components.js → Composants réutilisables
+    5. Navbar.js     → Barre de navigation
+    6. CartDrawer.js → Tiroir du panier
+    7. ProductCard.js→ Carte produit
+    8. pages.js      → Pages (Home, Catalog, Product, Checkout, Wishlist, Account)
+    9. Admin.js      → Panneau d'administration
+    10. Footer.js    → Pied de page
+    11. App.js       → Composant principal + montage React
+    ═══════════════════════════════════════════════
+  -->
+  <!-- ── Configuration Odoo ── -->
+  <script>
+    window.KUMPAX_USE_ODOO = true;
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    window.KUMPAX_API_URL = isLocal ? "http://localhost:3001" : "";
+  </script>
+
+  <script type="text/babel" src="js/data.js"></script>
+  <script type="text/babel" src="js/api.js"></script>
+  <script type="text/babel" src="js/contexts.js"></script>
+  <script type="text/babel" src="js/components.js"></script>
+  <script type="text/babel" src="js/Navbar.js"></script>
+  <script type="text/babel" src="js/CartDrawer.js"></script>
+  <script type="text/babel" src="js/ProductCard.js"></script>
+  <script type="text/babel" src="js/pages.js"></script>
+  <script type="text/babel" src="js/Admin.js"></script>
+  <script type="text/babel" src="js/Footer.js"></script>
+  <script type="text/babel" src="js/App.js"></script>
+</body>
+
+</html>

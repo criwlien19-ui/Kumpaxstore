@@ -1,0 +1,15 @@
+# ── Node ──────────────────────────────────────────────
+node_modules/
+
+# ── Variables d'environnement (contiennent des secrets) ──
+.env
+.env.local
+.env.production
+
+# ── Logs ──────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── OS ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

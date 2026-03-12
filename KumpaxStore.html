@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kumpax Store</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#F8FAFC}
+.line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.line-clamp-1{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+
+/* Animations */
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastIn{from{opacity:0;transform:translateY(20px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.slide-in{animation:slideIn .3s ease}
+.fade-in{animation:fadeIn .35s ease}
+.toast-in{animation:toastIn .3s ease}
+
+/* Base utilities */
+.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}
+.items-start{align-items:flex-start}.justify-between{justify-content:space-between}
+.justify-center{justify-content:center}.justify-end{justify-content:flex-end}
+.w-full{width:100%}.h-full{height:100%}.min-h-screen{min-height:100vh}
+.relative{position:relative}.absolute{position:absolute}.fixed{position:fixed}
+.inset-0{top:0;right:0;bottom:0;left:0}.top-0{top:0}.right-0{right:0}.bottom-0{bottom:0}
+.left-0{left:0}.z-10{z-index:10}.z-40{z-index:40}.z-50{z-index:50}
+.overflow-hidden{overflow:hidden}.overflow-y-auto{overflow-y:auto}.overflow-x-auto{overflow-x:auto}
+.cursor-pointer{cursor:pointer}.cursor-not-allowed{cursor:not-allowed}
+.pointer-events-none{pointer-events:none}.select-none{user-select:none}
+.hidden{display:none}.block{display:block}.inline-flex{display:inline-flex}
+.grid{display:grid}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.gap-6{gap:24px}
+.grid-cols-2{grid-template-columns:repeat(2,1fr)}.grid-cols-3{grid-template-columns:repeat(3,1fr)}
+.grid-cols-4{grid-template-columns:repeat(4,1fr)}
+.col-span-2{grid-column:span 2}
+.sticky{position:sticky}.top-0{top:0}
+.shadow-sm{box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.shadow-md{box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.shadow-lg{box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.shadow-xl{box-shadow:0 20px 40px rgba(0,0,0,.15)}
+.rounded{border-radius:4px}.rounded-lg{border-radius:8px}.rounded-xl{border-radius:12px}
+.rounded-2xl{border-radius:16px}.rounded-3xl{border-radius:24px}.rounded-full{border-radius:9999px}
+.border{border:1px solid #e2e8f0}.border-t{border-top:1px solid #e2e8f0}
+.border-b{border-bottom:1px solid #e2e8f0}.border-2{border-width:2px}
+.border-gray-100{border-color:#f1f5f9}.border-gray-200{border-color:#e2e8f0}
+.border-blue-500{border-color:#3b82f6}.border-dashed{border-style:dashed}
+.text-white{color:#fff}.text-gray-400{color:#94a3b8}.text-gray-500{color:#64748b}
+.text-gray-600{color:#475569}.text-gray-700{color:#334155}.text-gray-800{color:#1e293b}
+.text-gray-900{color:#0f172a}.text-blue-600{color:#2563eb}.text-blue-700{color:#1d4ed8}
+.text-red-500{color:#ef4444}.text-red-600{color:#dc2626}.text-amber-400{color:#fbbf24}
+.text-amber-500{color:#f59e0b}.text-amber-700{color:#b45309}.text-emerald-600{color:#059669}
+.text-emerald-700{color:#047857}
+.bg-white{background:#fff}.bg-gray-50{background:#f8fafc}.bg-gray-100{background:#f1f5f9}
+.bg-gray-800{background:#1e293b}.bg-red-50{background:#fef2f2}.bg-red-500{background:#ef4444}
+.bg-blue-50{background:#eff6ff}.bg-amber-50{background:#fffbeb}.bg-amber-100{background:#fef3c7}
+.bg-amber-400{background:#fbbf24}.bg-emerald-50{background:#ecfdf5}
+.bg-emerald-100{background:#d1fae5}.bg-emerald-500{background:#10b981}
+.bg-emerald-600{background:#059669}.bg-black{background:#000}
+.opacity-0{opacity:0}.opacity-10{opacity:.1}.opacity-20{opacity:.2}.opacity-40{opacity:.4}
+.opacity-50{opacity:.5}.opacity-100{opacity:1}
+.text-xs{font-size:11px}.text-sm{font-size:13px}.text-base{font-size:15px}
+.text-lg{font-size:17px}.text-xl{font-size:20px}.text-2xl{font-size:24px}
+.text-3xl{font-size:30px}.text-4xl{font-size:36px}
+.font-medium{font-weight:500}.font-semibold{font-weight:600}.font-bold{font-weight:700}
+.font-extrabold{font-weight:800}.font-black{font-weight:900}
+.leading-tight{line-height:1.25}.leading-relaxed{line-height:1.7}
+.tracking-wide{letter-spacing:.05em}.tracking-wider{letter-spacing:.1em}
+.uppercase{text-transform:uppercase}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.whitespace-nowrap{white-space:nowrap}.text-center{text-align:center}.text-left{text-align:left}
+.text-right{text-align:right}
+.transition-all{transition:all .2s ease}.transition-colors{transition:color .2s,background .2s}
+.transition-transform{transition:transform .2s ease}
+.hover\:opacity-90:hover{opacity:.9}.hover\:scale-105:hover{transform:scale(1.05)}
+.active\:scale-95:active{transform:scale(.95)}
+.disabled\:opacity-50[disabled]{opacity:.5}.disabled\:cursor-not-allowed[disabled]{cursor:not-allowed}
+.resize-none{resize:none}.appearance-none{-webkit-appearance:none}
+input,select,textarea{font-family:'Sora',sans-serif;font-size:13px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.divide-y>*+*{border-top:1px solid #f8fafc}
+.max-w-7xl{max-width:1280px}.max-w-5xl{max-width:1024px}.max-w-2xl{max-width:672px}
+.max-w-sm{max-width:384px}.max-w-xs{max-width:320px}.max-w-md{max-width:448px}
+.mx-auto{margin-left:auto;margin-right:auto}
+/* Spacing */
+.p-1{padding:4px}.p-2{padding:8px}.p-3{padding:12px}.p-4{padding:16px}.p-5{padding:20px}
+.p-6{padding:24px}.p-8{padding:32px}.px-3{padding-left:12px;padding-right:12px}
+.px-4{padding-left:16px;padding-right:16px}.px-5{padding-left:20px;padding-right:20px}
+.px-6{padding-left:24px;padding-right:24px}.px-8{padding-left:32px;padding-right:32px}
+.py-1{padding-top:4px;padding-bottom:4px}.py-2{padding-top:8px;padding-bottom:8px}
+.py-3{padding-top:12px;padding-bottom:12px}.py-4{padding-top:16px;padding-bottom:16px}
+.py-5{padding-top:20px;padding-bottom:20px}.py-6{padding-top:24px;padding-bottom:24px}
+.py-8{padding-top:32px;padding-bottom:32px}.py-10{padding-top:40px;padding-bottom:40px}
+.py-12{padding-top:48px;padding-bottom:48px}.py-16{padding-top:64px;padding-bottom:64px}
+.py-20{padding-top:80px;padding-bottom:80px}
+.pt-3{padding-top:12px}.pt-4{padding-top:16px}.pb-2{padding-bottom:8px}
+.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}
+.mt-6{margin-top:24px}.mt-8{margin-top:32px}.mt-12{margin-top:48px}
+.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}
+.mb-4{margin-bottom:16px}.mb-5{margin-bottom:20px}.mb-6{margin-bottom:24px}
+.mb-8{margin-bottom:32px}.ml-auto{margin-left:auto}.ml-1{margin-left:4px}.mr-2{margin-right:8px}
+.space-y-2>*+*{margin-top:8px}.space-y-3>*+*{margin-top:12px}.space-y-4>*+*{margin-top:16px}
+.space-y-5>*+*{margin-top:20px}.space-y-6>*+*{margin-top:24px}
+.space-x-2>*+*{margin-left:8px}
+/* Sizes */
+.w-5{width:20px}.w-6{width:24px}.w-7{width:28px}.w-8{width:32px}.w-9{width:36px}
+.w-10{width:40px}.w-11{width:44px}.w-12{width:48px}.w-14{width:56px}.w-16{width:64px}
+.w-20{width:80px}.w-24{width:96px}.w-32{width:128px}.w-48{width:192px}.w-64{width:256px}
+.w-80{width:320px}.w-96{width:384px}
+.h-5{height:20px}.h-6{height:24px}.h-7{height:28px}.h-8{height:32px}.h-9{height:36px}
+.h-10{height:40px}.h-11{height:44px}.h-12{height:48px}.h-14{height:56px}.h-16{height:64px}
+.h-20{height:80px}.h-24{height:96px}.h-40{height:160px}.h-44{height:176px}.h-48{height:192px}
+.h-52{height:208px}.h-56{height:224px}.h-64{height:256px}.h-screen{height:100vh}
+.min-h-screen{min-height:100vh}.min-w-0{min-width:0}
+.flex-1{flex:1}.flex-shrink-0{flex-shrink:0}.flex-wrap{flex-wrap:wrap}
+
+/* Image object-cover */
+.object-cover{object-fit:cover}
+
+/* Group hover - manual approach */
+.card:hover .card-img{transform:scale(1.05)}
+.card:hover{transform:translateY(-2px);box-shadow:0 20px 40px rgba(0,0,0,.15)}
+
+/* Nav underline active */
+.nav-link{position:relative;padding-bottom:4px}
+.nav-link::after{content:'';position:absolute;bottom:0;left:0;width:0;height:2px;background:#1E40AF;transition:width .2s}
+.nav-link:hover::after{width:100%}
+
+/* Scrollbar hide */
+.scrollbar-hide::-webkit-scrollbar{display:none}
+.scrollbar-hide{-ms-overflow-style:none;scrollbar-width:none}
+
+@media(max-width:768px){
+  .md\:grid-cols-2{grid-template-columns:repeat(1,1fr)}
+  .md\:hidden{display:none}
+  .md\:block{display:none}
+  .hide-mobile{display:none}
+}
+@media(min-width:768px){
+  .show-mobile-only{display:none}
+  .md\:grid-cols-2{grid-template-columns:repeat(2,1fr)}
+  .md\:grid-cols-4{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useContext,createContext,useReducer,useEffect,useRef,useCallback,useMemo}=React;
+
+// ── DATA ──
+const BLUE="#1E40AF",DARK_BLUE="#0F4C81";
+const grad=`linear-gradient(135deg,${BLUE},${DARK_BLUE})`;
+const PLACEHOLDER="https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=400&q=80";
+const CATS=[
+  {id:1,name:"Smartphones",  icon:"📱",bg:"#EFF6FF",accent:"#1E40AF",count:24},
+  {id:2,name:"Vêtements",    icon:"👕",bg:"#F0FDF4",accent:"#166534",count:56},
+  {id:3,name:"Électroménager",icon:"🏠",bg:"#FFF7ED",accent:"#9A3412",count:18},
+  {id:4,name:"TV & Audio",   icon:"📺",bg:"#FDF4FF",accent:"#7E22CE",count:12},
+  {id:5,name:"Beauté",       icon:"💄",bg:"#FFF1F2",accent:"#BE123C",count:34},
+  {id:6,name:"Alimentation", icon:"🛒",bg:"#F0FDFA",accent:"#0F766E",count:67},
+];
+const PRODS=[
+  {id:1, name:"iPhone 15 Pro Max",         cat:"Smartphones",    price:895000,orig:950000, img:"https://images.unsplash.com/photo-1696446701796-da61225697cc?w=400&q=80",  rating:4.8,rev:124,badge:"Populaire",    stock:8,  desc:"Le dernier iPhone avec puce A17 Pro, appareil photo 48MP et écran Super Retina XDR de 6.7 pouces.",     specs:["Puce A17 Pro","Écran 6.7\"","48MP Camera","Titane"]},
+  {id:2, name:"Samsung Galaxy S24 Ultra",  cat:"Smartphones",    price:820000,orig:870000, img:"https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&q=80",  rating:4.7,rev:98, badge:"Nouveau",       stock:5,  desc:"Galaxy S24 Ultra avec S Pen intégré, caméra 200MP et Galaxy AI pour une expérience Android ultime.",      specs:["Snapdragon 8 Gen 3","Écran 6.8\"","200MP","S Pen"]},
+  {id:3, name:"Boubou Grand Bazin Brodé",  cat:"Vêtements",      price:85000, orig:95000,  img:"https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&q=80",  rating:4.9,rev:203,badge:"Tendance 🇸🇳",  stock:15, desc:"Boubou authentique en grand basin riche, broderie main artisanale. Disponible tailles S à XXXL.",         specs:["100% Basin","Broderie Main","Teinture Nat.","Fait au SN"]},
+  {id:4, name:"Réfrigérateur Samsung 350L",cat:"Électroménager", price:345000,orig:385000, img:"https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=400&q=80",  rating:4.6,rev:67, badge:"Solde",         stock:3,  desc:"Réfrigérateur double porte 350L avec technologie No Frost et classe énergétique A++.",                     specs:["350 Litres","No Frost","Classe A++","Garantie 2 ans"]},
+  {id:5, name:"Xiaomi Redmi Note 13 Pro",  cat:"Smartphones",    price:245000,orig:265000, img:"https://images.unsplash.com/photo-1598327105854-23d5b6e14423?w=400&q=80",  rating:4.5,rev:189,badge:"Meilleur prix",stock:20, desc:"Meilleur rapport qualité-prix. Écran AMOLED 120Hz, batterie 5000mAh et charge rapide 67W.",               specs:["Helio G99","6.67\" AMOLED","200MP","5000mAh"]},
+  {id:6, name:'Smart TV LG OLED 55"',      cat:"TV & Audio",     price:680000,orig:720000, img:"https://images.unsplash.com/photo-1593359677879-a4bb92f4834c?w=400&q=80",  rating:4.8,rev:45, badge:"Premium",       stock:4,  desc:"Téléviseur OLED 55 pouces avec processeur α9 Gen6 AI, webOS 23 et Dolby Vision & Atmos.",                  specs:["OLED 55\"","4K 120Hz","Dolby Vision","webOS 23"]},
+  {id:7, name:"Robe Wax Ankara Moderne",   cat:"Vêtements",      price:35000, orig:42000,  img:"https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&q=80",  rating:4.7,rev:312,badge:"Tendance 🇸🇳",  stock:30, desc:"Robe élégante en tissu wax Ankara de qualité supérieure, coupe moderne. Design exclusif Kumpax.",          specs:["100% Wax","Coupe Moderne","Lavable 30°","Exclusif"]},
+  {id:8, name:"AirPods Pro 2ème Gén.",     cat:"TV & Audio",     price:195000,orig:215000, img:"https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?w=400&q=80",  rating:4.9,rev:156,badge:"Populaire",    stock:12, desc:"Écouteurs sans fil avec réduction de bruit active, audio spatial personnalisé. 30h d'autonomie.",           specs:["ANC Adaptatif","Audio Spatial","IP54","30h Auto."]},
+  {id:9, name:"Machine à laver Hisense 7kg",cat:"Électroménager",price:265000,orig:295000, img:"https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?w=400&q=80",  rating:4.4,rev:89, badge:"Solde",         stock:7,  desc:"Machine à laver 7kg avec 15 programmes, technologie Inverter et classe A+++. Silencieuse et économique.",  specs:["7kg","15 Programmes","Classe A+++","Inverter"]},
+  {id:10,name:"Djellaba Homme Luxe",       cat:"Vêtements",      price:55000, orig:65000,  img:"https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&q=80",  rating:4.8,rev:178,badge:"Nouveau",       stock:18, desc:"Djellaba homme en tissu premium, broderies artisanales sur le col et les manches. Pour les cérémonies.",   specs:["Tissu Premium","Broderie","M-XXXL","Livraison Grat."]},
+  {id:11,name:"Climatiseur Midea 12000BTU",cat:"Électroménager", price:285000,orig:310000, img:"https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&q=80",  rating:4.5,rev:94, badge:"Essentiel",     stock:6,  desc:"Climatiseur inverter 12000BTU, WiFi Control et mode ECO. Refroidissement rapide en 10 min.",                specs:["12000 BTU","Inverter A++","WiFi","Install. incluse"]},
+  {id:12,name:"Samsung Galaxy Tab S9",     cat:"Smartphones",    price:425000,orig:460000, img:"https://images.unsplash.com/photo-1561154464-82e9adf32764?w=400&q=80",     rating:4.7,rev:72, badge:"Nouveau",       stock:9,  desc:"Tablette premium AMOLED 11\", S Pen inclus. Performances de laptop pour travail et divertissement.",        specs:["SD 8 Gen 2","11\" AMOLED","S Pen","256GB"]},
+];
+const INIT_ORDERS=[
+  {id:"#KMP-2401",customer:"Moussa Diallo",  items:3,total:345000,status:"Livré",     date:"2024-01-15",city:"Dakar"},
+  {id:"#KMP-2402",customer:"Fatou Sow",      items:1,total:895000,status:"En attente",date:"2024-01-16",city:"Thiès"},
+  {id:"#KMP-2403",customer:"Ibrahima Ndiaye",items:2,total:120000,status:"En transit",date:"2024-01-17",city:"Saint-Louis"},
+  {id:"#KMP-2404",customer:"Aïssatou Fall",  items:4,total:285000,status:"En attente",date:"2024-01-17",city:"Ziguinchor"},
+  {id:"#KMP-2405",customer:"Cheikh Mbaye",   items:1,total:680000,status:"Livré",     date:"2024-01-14",city:"Dakar"},
+];
+const fmt=p=>p.toLocaleString("fr-FR")+" FCFA";
+
+// ══════════════════════════════════════════════════════════
+// ── COUCHE API ODOO ──────────────────────────────────────
+// Configuration globale
+window.KUMPAX_USE_ODOO = true;
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = window.KUMPAX_API_URL || (isLocal ? "http://localhost:3001" : "");
+const USE_ODOO = window.KUMPAX_USE_ODOO;
+// ══════════════════════════════════════════════════════════
+
+const api = {
+  // Récupère les produits (avec filtres optionnels)
+  async getProducts(params = {}) {
+    if (!USE_ODOO) return { success:true, data:PRODS };
+    const qs = new URLSearchParams(params).toString();
+    const r  = await fetch(`${API_URL}/api/products${qs?"?"+qs:""}`);
+    return r.json();
+  },
+  // Récupère les catégories depuis Odoo
+  async getCategories() {
+    if (!USE_ODOO) return { success:true, data:CATS };
+    const r = await fetch(`${API_URL}/api/products/categories`);
+    return r.json();
+  },
+  // Récupère un produit par ID
+  async getProduct(id) {
+    if (!USE_ODOO) return { success:true, data:PRODS.find(p=>p.id===id)||null };
+    const r = await fetch(`${API_URL}/api/products/${id}`);
+    return r.json();
+  },
+  // Crée une commande dans Odoo
+  async createOrder(payload) {
+    if (!USE_ODOO) {
+      // Simule une réponse Odoo en mode démo
+      await new Promise(r=>setTimeout(r,900));
+      return { success:true, data:{ orderName:`S${Math.floor(Math.random()*90000+10000)}`, status:"sale" }};
+    }
+    const r = await fetch(`${API_URL}/api/orders`, {
+      method:  "POST",
+      headers: { "Content-Type":"application/json" },
+      body:    JSON.stringify(payload),
+    });
+    return r.json();
+  },
+  // Récupère les commandes (admin)
+  async getOrders(params = {}) {
+    if (!USE_ODOO) return { success:true, data:INIT_ORDERS };
+    const qs = new URLSearchParams(params).toString();
+    const r  = await fetch(`${API_URL}/api/orders${qs?"?"+qs:""}`);
+    return r.json();
+  },
+  // Met à jour le statut d'une commande (admin)
+  async updateOrderStatus(id, state) {
+    if (!USE_ODOO) return { success:true };
+    const r = await fetch(`${API_URL}/api/orders/${id}/status`, {
+      method:  "PATCH",
+      headers: { "Content-Type":"application/json" },
+      body:    JSON.stringify({ state }),
+    });
+    return r.json();
+  },
+  // Vérifie la connexion Odoo
+  async healthCheck() {
+    try {
+      const r = await fetch(`${API_URL}/api/health`, { signal: AbortSignal.timeout(3000) });
+      return r.json();
+    } catch { return { status:"error", odoo:"unreachable" }; }
+  },
+};
+
+// Hook générique pour appels API avec état loading/error
+function useApi(fn, deps=[]) {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
+  const refresh = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { const res = await fn(); if(res.success) setData(res.data); else setError(res.error); }
+    catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, deps);
+  useEffect(() => { refresh(); }, [refresh]);
+  return { data, loading, error, refresh };
+}
+
+// Composant skeleton loader
+const Skeleton=({w="100%",h=16,r=8,mb=0})=>(
+  <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",marginBottom:mb}}/>
+);
+
+// ── CONTEXTS ──
+const CartCtx=createContext(null);
+function cartReducer(s,a){
+  switch(a.type){
+    case"ADD":{const ex=s.find(i=>i.id===a.p.id);if(ex){if(ex.qty>=(a.p.stock??99))return s;return s.map(i=>i.id===a.p.id?{...i,qty:i.qty+1}:i);}return[...s,{...a.p,qty:1}];}
+    case"REMOVE":return s.filter(i=>i.id!==a.id);
+    case"QTY":return s.map(i=>i.id===a.id?{...i,qty:Math.min(Math.max(1,a.qty),i.stock??99)}:i);
+    case"CLEAR":return[];
+    default:return s;
+  }
+}
+function CartProvider({children}){
+  const[items,dispatch]=useReducer(cartReducer,[]);
+  const total=items.reduce((s,i)=>s+i.price*i.qty,0);
+  const count=items.reduce((s,i)=>s+i.qty,0);
+  return <CartCtx.Provider value={{items,total,count,dispatch}}>{children}</CartCtx.Provider>;
+}
+const useCart=()=>useContext(CartCtx);
+
+const WishCtx=createContext(null);
+function WishProvider({children}){
+  const[ids,setIds]=useState(new Set());
+  const toggle=useCallback(id=>setIds(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;}),[]);
+  return <WishCtx.Provider value={{ids,toggle,count:ids.size}}>{children}</WishCtx.Provider>;
+}
+const useWish=()=>useContext(WishCtx);
+
+const ToastCtx=createContext(null);
+function ToastProvider({children}){
+  const[toasts,setToasts]=useState([]);
+  const push=useCallback((msg,type="success")=>{
+    const id=Date.now();
+    setToasts(t=>[...t,{id,msg,type}]);
+    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)),2800);
+  },[]);
+  return(
+    <ToastCtx.Provider value={{push}}>
+      {children}
+      <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",gap:8,pointerEvents:"none"}}>
+        {toasts.map(t=>(
+          <div key={t.id} className="toast-in" style={{
+            padding:"10px 18px",borderRadius:12,color:"#fff",fontSize:12,fontWeight:700,
+            display:"flex",alignItems:"center",gap:8,boxShadow:"0 8px 24px rgba(0,0,0,.2)",
+            background:t.type==="error"?"#ef4444":t.type==="warn"?"#f59e0b":"#10b981"
+          }}>
+            {t.type==="error"?"✕":t.type==="warn"?"⚠":"✓"} {t.msg}
+          </div>
+        ))}
+      </div>
+    </ToastCtx.Provider>
+  );
+}
+const useToast=()=>useContext(ToastCtx);
+
+// ── HELPERS ──
+const Btn=({onClick,children,style,disabled,outline})=>(
+  <button onClick={onClick} disabled={disabled} className="active\\:scale-95 transition-all" style={{
+    display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6,
+    padding:"10px 20px",borderRadius:12,fontFamily:"'Sora',sans-serif",fontWeight:700,fontSize:13,
+    cursor:disabled?"not-allowed":"pointer",opacity:disabled?.5:1,border:"none",
+    ...(outline?{border:`2px solid ${BLUE}`,background:"transparent",color:BLUE}:{background:grad,color:"#fff"}),
+    ...style
+  }}>{children}</button>
+);
+
+const StatusBadge=({s})=>{
+  const m={"Livré":["#d1fae5","#047857"],"En attente":["#fef3c7","#b45309"],"En transit":["#dbeafe","#1d4ed8"],"Annulé":["#fee2e2","#dc2626"]};
+  const[bg,cl]=m[s]||["#f1f5f9","#64748b"];
+  return <span style={{padding:"3px 10px",borderRadius:9999,fontSize:11,fontWeight:700,background:bg,color:cl}}>{s}</span>;
+};
+
+const SafeImg=({src,alt,style,className})=>(
+  <img src={src||PLACEHOLDER} alt={alt||""} style={style} className={className}
+    onError={e=>{e.currentTarget.src=PLACEHOLDER;}}/>
+);
+
+const Stars=({rating,size=11})=>(
+  <span style={{display:"inline-flex",gap:1}}>
+    {[1,2,3,4,5].map(i=>(
+      <span key={i} style={{color:i<=Math.round(rating)?"#fbbf24":"#e2e8f0",fontSize:size}}>★</span>
+    ))}
+  </span>
+);
+
+// ── NAVBAR ──
+function Navbar({go,setCartOpen,q,setQ,categories=CATS}){
+  const{count}=useCart();
+  const{count:wc}=useWish();
+  const[mob,setMob]=useState(false);
+
+  return(
+    <nav style={{position:"sticky",top:0,zIndex:40,background:"#fff",borderBottom:"1px solid #f1f5f9",boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+      <div style={{maxWidth:1280,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",justifyContent:"space-between",height:56,gap:12}}>
+        {/* Logo */}
+        <button onClick={()=>go("home")} style={{display:"flex",alignItems:"center",gap:8,border:"none",background:"none",cursor:"pointer"}}>
+          <div style={{width:34,height:34,borderRadius:10,background:grad,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{color:"#fff",fontSize:16}}>🛍</span>
+          </div>
+          <span style={{fontSize:18,fontWeight:900,color:DARK_BLUE,fontFamily:"'Sora',sans-serif"}}>Kumpax<span style={{color:"#f59e0b"}}>.</span></span>
+        </button>
+
+        {/* Search */}
+        <div className="hide-mobile" style={{flex:1,maxWidth:340}}>
+          <div style={{position:"relative"}}>
+            <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"#94a3b8",fontSize:14}}>🔍</span>
+            <input value={q} onChange={e=>setQ(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&q.trim()&&go("catalog")}
+              placeholder="Rechercher un produit..."
+              style={{width:"100%",paddingLeft:34,paddingRight:q?30:12,paddingTop:8,paddingBottom:8,borderRadius:12,border:"1px solid #e2e8f0",background:"#f8fafc",fontSize:13,fontFamily:"'Sora',sans-serif"}}/>
+            {q&&<button onClick={()=>setQ("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",color:"#94a3b8",fontSize:14}}>✕</button>}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          <button onClick={()=>go("wishlist")} className="hide-mobile" style={{position:"relative",padding:"8px 10px",borderRadius:10,border:"none",background:"none",cursor:"pointer",color:"#64748b",fontSize:18}}>
+            🤍
+            {wc>0&&<span style={{position:"absolute",top:2,right:2,width:16,height:16,borderRadius:"50%",background:"#ef4444",color:"#fff",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{wc}</span>}
+          </button>
+          <button onClick={()=>go("account")} className="hide-mobile" style={{padding:"8px 10px",borderRadius:10,border:"none",background:"none",cursor:"pointer",color:"#64748b",fontSize:18}}>👤</button>
+          <button onClick={()=>setCartOpen(true)} style={{position:"relative",display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:10,border:"none",background:"#eff6ff",cursor:"pointer",color:BLUE,fontWeight:700,fontSize:13,fontFamily:"'Sora',sans-serif"}}>
+            🛒 <span className="hide-mobile">Panier</span>
+            {count>0&&<span style={{position:"absolute",top:-4,right:-4,width:20,height:20,borderRadius:"50%",background:BLUE,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{count}</span>}
+          </button>
+          <button onClick={()=>setMob(!mob)} className="show-mobile-only" style={{padding:8,borderRadius:10,border:"none",background:"none",cursor:"pointer",fontSize:18}}>
+            {mob?"✕":"☰"}
+          </button>
+        </div>
+      </div>
+
+      {/* Categories bar */}
+      <div className="hide-mobile" style={{maxWidth:1280,margin:"0 auto",padding:"0 16px 10px",display:"flex",gap:20,overflowX:"auto"}} >
+        {["Tous",...categories.map(c=>c.name)].map(c=>(
+          <button key={c} onClick={()=>go("catalog",{cat:c})} className="nav-link" style={{border:"none",background:"none",cursor:"pointer",fontSize:13,fontWeight:500,color:"#64748b",whiteSpace:"nowrap",padding:"0 0 4px",fontFamily:"'Sora',sans-serif"}}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile menu */}
+      {mob&&(
+        <div style={{background:"#fff",borderTop:"1px solid #f1f5f9",padding:"12px 16px"}}>
+          <div style={{position:"relative",marginBottom:10}}>
+            <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"#94a3b8"}}>🔍</span>
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher..."
+              style={{width:"100%",paddingLeft:32,paddingRight:12,paddingTop:8,paddingBottom:8,borderRadius:10,border:"1px solid #e2e8f0",background:"#f8fafc",fontSize:13,fontFamily:"'Sora',sans-serif"}}/>
+          </div>
+          {categories.map(c=>(
+            <button key={c.id} onClick={()=>{go("catalog",{cat:c.name});setMob(false);}} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"8px 4px",border:"none",background:"none",cursor:"pointer",fontSize:13,color:"#334155",fontFamily:"'Sora',sans-serif"}}>
+              <span>{c.icon}</span>{c.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </nav>
+  );
+}
+
+// ── CART DRAWER ──
+function CartDrawer({open,onClose,go}){
+  const{items,total,dispatch}=useCart();
+  const{push}=useToast();
+  return(
+    <>
+      <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:50,opacity:open?1:0,pointerEvents:open?"all":"none",transition:"opacity .3s"}}/>
+      <div className={open?"slide-in":""} style={{position:"fixed",right:0,top:0,height:"100%",width:320,background:"#fff",zIndex:51,boxShadow:"-8px 0 40px rgba(0,0,0,.15)",display:"flex",flexDirection:"column",transform:open?"translateX(0)":"translateX(100%)",transition:"transform .3s ease"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #f1f5f9"}}>
+          <span style={{fontWeight:800,fontSize:15}}>Mon Panier <span style={{color:"#94a3b8",fontWeight:400}}>({items.length})</span></span>
+          <button onClick={onClose} style={{border:"none",background:"#f1f5f9",borderRadius:10,width:32,height:32,cursor:"pointer",fontSize:16}}>✕</button>
+        </div>
+
+        <div style={{flex:1,overflowY:"auto",padding:"16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+          {items.length===0?(
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:12,color:"#94a3b8",textAlign:"center"}}>
+              <span style={{fontSize:48,opacity:.2}}>🛒</span>
+              <p style={{fontWeight:600,fontSize:13}}>Votre panier est vide</p>
+              <button onClick={onClose} style={{fontSize:12,color:BLUE,border:"none",background:"none",cursor:"pointer",textDecoration:"underline"}}>Continuer les achats</button>
+            </div>
+          ):items.map(item=>(
+            <div key={item.id} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+              <SafeImg src={item.img} alt={item.name} style={{width:54,height:54,borderRadius:10,objectFit:"cover",flexShrink:0}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{fontSize:12,fontWeight:600,lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{item.name}</p>
+                <p style={{fontSize:12,fontWeight:800,color:BLUE,marginTop:2}}>{fmt(item.price)}</p>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+                  <button onClick={()=>{if(item.qty===1){dispatch({type:"REMOVE",id:item.id});push("Article retiré","warn");}else dispatch({type:"QTY",id:item.id,qty:item.qty-1});}} style={{width:22,height:22,borderRadius:6,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                  <span style={{fontSize:12,fontWeight:700,width:20,textAlign:"center"}}>{item.qty}</span>
+                  <button onClick={()=>{if(item.qty>=(item.stock??99)){push("Stock maximum atteint","warn");return;}dispatch({type:"QTY",id:item.id,qty:item.qty+1});}} style={{width:22,height:22,borderRadius:6,border:"1px solid #e2e8f0",background:"#f8fafc",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                  <button onClick={()=>{dispatch({type:"REMOVE",id:item.id});push("Retiré","warn");}} style={{marginLeft:"auto",border:"none",background:"none",cursor:"pointer",color:"#ef4444",fontSize:14}}>🗑</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {items.length>0&&(
+          <div style={{borderTop:"1px solid #f1f5f9",padding:"16px 20px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:11,color:"#94a3b8"}}>Livraison</span>
+              <span style={{fontSize:11,color:"#059669",fontWeight:700}}>Gratuite 🎉</span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+              <span style={{fontWeight:800}}>Total</span>
+              <span style={{fontWeight:900,fontSize:17,color:BLUE}}>{fmt(total)}</span>
+            </div>
+            <Btn onClick={()=>{onClose();go("checkout");}} style={{width:"100%",borderRadius:12,padding:"12px 20px"}}>
+              Commander maintenant →
+            </Btn>
+            <button onClick={()=>dispatch({type:"CLEAR"})} style={{width:"100%",marginTop:8,border:"none",background:"none",cursor:"pointer",fontSize:11,color:"#94a3b8",padding:4}}>Vider le panier</button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── PRODUCT CARD ──
+function ProductCard({p,go}){
+  const{dispatch}=useCart();
+  const{ids,toggle}=useWish();
+  const{push}=useToast();
+  const[added,setAdded]=useState(false);
+  const disc=p.orig?Math.round((1-p.price/p.orig)*100):0;
+  const liked=ids.has(p.id);
+  const oos=p.stock===0;
+
+  const add=()=>{
+    if(oos)return;
+    dispatch({type:"ADD",p});
+    push(p.name.slice(0,22)+"... ajouté !");
+    setAdded(true);
+    setTimeout(()=>setAdded(false),1400);
+  };
+
+  return(
+    <div className="card" style={{background:"#fff",borderRadius:16,overflow:"hidden",border:"1px solid #f1f5f9",boxShadow:"0 1px 4px rgba(0,0,0,.06)",display:"flex",flexDirection:"column",transition:"all .25s ease",cursor:"default"}}>
+      <div style={{position:"relative",overflow:"hidden"}}>
+        <SafeImg src={p.img} alt={p.name} className="card-img" style={{width:"100%",height:170,objectFit:"cover",display:"block",transition:"transform .5s ease"}}/>
+        {p.badge&&<span style={{position:"absolute",top:8,left:8,padding:"2px 8px",borderRadius:99,fontSize:10,fontWeight:700,background:"rgba(255,255,255,.95)",color:"#1e293b",boxShadow:"0 1px 4px rgba(0,0,0,.1)"}}>{p.badge}</span>}
+        {disc>0&&<span style={{position:"absolute",top:8,right:34,padding:"2px 7px",borderRadius:99,fontSize:10,fontWeight:800,background:"#ef4444",color:"#fff"}}>-{disc}%</span>}
+        {oos&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,.75)",display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:11,fontWeight:800,color:"#dc2626",background:"#fff",padding:"4px 12px",borderRadius:99,boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}>Rupture de stock</span></div>}
+        <button onClick={()=>{toggle(p.id);push(liked?"Retiré des favoris":"Ajouté aux favoris 💛");}} style={{position:"absolute",top:8,right:8,width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,.95)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,transition:"transform .2s"}}
+          onMouseEnter={e=>e.currentTarget.style.transform="scale(1.15)"}
+          onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}>
+          {liked?"❤️":"🤍"}
+        </button>
+      </div>
+
+      <div style={{padding:12,display:"flex",flexDirection:"column",flex:1}}>
+        <p style={{fontSize:10,color:"#94a3b8",marginBottom:2,textTransform:"uppercase",letterSpacing:.05}}>{p.cat}</p>
+        <p onClick={()=>go("product",{product:p})} style={{fontWeight:700,fontSize:13,lineHeight:1.35,marginBottom:6,cursor:"pointer",flex:1,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}
+          onMouseEnter={e=>e.currentTarget.style.color=BLUE}
+          onMouseLeave={e=>e.currentTarget.style.color="#1e293b"}>
+          {p.name}
+        </p>
+        <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:8}}>
+          <Stars rating={p.rating}/>
+          <span style={{fontSize:10,color:"#94a3b8"}}>({p.rev})</span>
+        </div>
+        <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginTop:"auto"}}>
+          <div>
+            <p style={{fontSize:13,fontWeight:900,color:BLUE}}>{fmt(p.price)}</p>
+            {p.orig&&<p style={{fontSize:10,color:"#94a3b8",textDecoration:"line-through"}}>{fmt(p.orig)}</p>}
+          </div>
+          <button onClick={add} disabled={oos} style={{
+            display:"flex",alignItems:"center",gap:4,padding:"7px 11px",borderRadius:10,border:"none",
+            cursor:oos?"not-allowed":"pointer",fontWeight:700,fontSize:11,fontFamily:"'Sora',sans-serif",
+            background:added?"#10b981":BLUE,color:"#fff",opacity:oos?.5:1,transition:"background .2s"
+          }}>
+            {added?"✓ OK":"+ Ajouter"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── HOME ──
+function Home({go,products=PRODS,categories=CATS,loading=false}){
+  return(
+    <div>
+      {/* Hero */}
+      <div style={{background:grad,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,opacity:.08}}>
+          <div style={{position:"absolute",top:30,left:60,width:200,height:200,borderRadius:"50%",background:"#fff",filter:"blur(60px)"}}/>
+          <div style={{position:"absolute",bottom:0,right:40,width:150,height:150,borderRadius:"50%",background:"#fbbf24",filter:"blur(50px)"}}/>
+        </div>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"48px 16px 56px",position:"relative"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:32,alignItems:"center"}}>
+            <div>
+              <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.15)",borderRadius:99,padding:"6px 16px",fontSize:12,fontWeight:600,color:"#fff",marginBottom:20}}>
+                ⚡ Livraison gratuite à Dakar
+              </div>
+              <h1 style={{fontSize:"clamp(26px,5vw,46px)",fontWeight:900,color:"#fff",lineHeight:1.15,marginBottom:16}}>
+                Le Shopping<br/>Premium au<br/><span style={{color:"#fbbf24"}}>Sénégal 🇸🇳</span>
+              </h1>
+              <p style={{color:"rgba(255,255,255,.8)",fontSize:14,lineHeight:1.7,marginBottom:24,maxWidth:400}}>
+                Des milliers de produits authentiques et importés, livrés chez vous en 24–48h.
+              </p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:32}}>
+                <button onClick={()=>go("catalog")} style={{padding:"10px 22px",background:"#fbbf24",color:"#1e293b",border:"none",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",gap:6,boxShadow:"0 4px 16px rgba(251,191,36,.4)",fontFamily:"'Sora',sans-serif"}}>
+                  Explorer le catalogue →
+                </button>
+                <button onClick={()=>go("catalog",{cat:"Vêtements"})} style={{padding:"10px 22px",background:"rgba(255,255,255,.15)",color:"#fff",border:"1px solid rgba(255,255,255,.3)",borderRadius:12,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>
+                  Mode Sénégalaise
+                </button>
+              </div>
+              <div style={{display:"flex",gap:32}}>
+                {[["5K+","Produits"],["98%","Satisfaits"],["24h","Livraison"]].map(([v,l])=>(
+                  <div key={l}><p style={{fontSize:20,fontWeight:900,color:"#fbbf24"}}>{v}</p><p style={{fontSize:11,color:"rgba(255,255,255,.6)"}}>{l}</p></div>
+                ))}
+              </div>
+            </div>
+            <div className="hide-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,width:280}}>
+              {products.slice(0,4).map((p,i)=>(
+                <div key={p.id} onClick={()=>go("product",{product:p})} style={{background:"rgba(255,255,255,.1)",backdropFilter:"blur(10px)",borderRadius:14,overflow:"hidden",border:"1px solid rgba(255,255,255,.2)",cursor:"pointer",marginTop:i===1?24:0,transition:"background .2s"}}
+                  onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.2)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}>
+                  <SafeImg src={p.img} alt={p.name} style={{width:"100%",height:90,objectFit:"cover"}}/>
+                  <div style={{padding:8}}>
+                    <p style={{color:"#fff",fontSize:10,fontWeight:700,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{p.name}</p>
+                    <p style={{color:"#fbbf24",fontSize:10,fontWeight:900}}>{fmt(p.price)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Trust */}
+      <div style={{background:"#fff",borderBottom:"1px solid #f1f5f9"}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"12px 16px"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8}}>
+            {[["🚚","Livraison 24-48h","À Dakar et régions"],["🔒","Paiement Sécurisé","Wave & Orange Money"],["🔄","Retour Facile","7 jours garantis"],["📞","Support 7j/7","+221 77 000 00 00"]].map(([ic,t,s],i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:10,borderRadius:12,cursor:"default"}}>
+                <div style={{width:36,height:36,borderRadius:10,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{ic}</div>
+                <div><p style={{fontSize:11,fontWeight:700,color:"#1e293b"}}>{t}</p><p style={{fontSize:10,color:"#94a3b8"}}>{s}</p></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:1280,margin:"0 auto",padding:"32px 16px"}}>
+        {/* Categories */}
+        <section style={{marginBottom:40}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:16}}>
+            <div>
+              <h2 style={{fontSize:20,fontWeight:900,color:"#0f172a"}}>Catégories Populaires</h2>
+              <p style={{fontSize:12,color:"#94a3b8",marginTop:2}}>Trouvez ce qu'il vous faut</p>
+            </div>
+            <button onClick={()=>go("catalog")} style={{fontSize:12,fontWeight:700,color:BLUE,border:"none",background:"none",cursor:"pointer"}}>Voir tout →</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:10}}>
+            {categories.map(c=>(
+              <button key={c.id} onClick={()=>go("catalog",{cat:c.name})} style={{
+                display:"flex",flexDirection:"column",alignItems:"center",gap:6,padding:"14px 8px",
+                borderRadius:16,border:"1px solid transparent",background:c.bg,cursor:"pointer",
+                transition:"all .2s",fontFamily:"'Sora',sans-serif"
+              }}
+              onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.1)";e.currentTarget.style.transform="translateY(-2px)";}}
+              onMouseLeave={e=>{e.currentTarget.style.boxShadow="none";e.currentTarget.style.transform="none";}}>
+                <span style={{fontSize:26}}>{c.icon}</span>
+                <span style={{fontSize:11,fontWeight:700,color:"#334155",textAlign:"center",lineHeight:1.2}}>{c.name}</span>
+                <span style={{fontSize:10,fontWeight:600,padding:"1px 8px",borderRadius:99,background:"rgba(255,255,255,.6)",color:c.accent}}>{c.count}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Trending */}
+        <section style={{marginBottom:40}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:16}}>
+            <div>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                <span style={{fontSize:14,color:"#f59e0b"}}>📈</span>
+                <span style={{fontSize:10,fontWeight:800,color:"#f59e0b",textTransform:"uppercase",letterSpacing:.1}}>Tendances Sénégal</span>
+              </div>
+              <h2 style={{fontSize:20,fontWeight:900,color:"#0f172a"}}>Produits du Moment</h2>
+            </div>
+            <button onClick={()=>go("catalog")} style={{fontSize:12,fontWeight:700,color:BLUE,border:"none",background:"none",cursor:"pointer"}}>Voir tout →</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:14}}>
+            {loading
+              ? [...Array(8)].map((_,i)=><div key={i} style={{background:"#fff",borderRadius:16,overflow:"hidden",border:"1px solid #f1f5f9"}}><Skeleton h={170} r={0} mb={0}/><div style={{padding:12}}><Skeleton h={12} w="60%" mb={8}/><Skeleton h={14} mb={6}/><Skeleton h={10} w="40%"/></div></div>)
+              : products.slice(0,8).map(p=><ProductCard key={p.id} p={p} go={go}/>)
+            }
+          </div>
+        </section>
+
+        {/* Promo */}
+        <div style={{borderRadius:24,padding:"32px 36px",background:grad,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",right:-40,bottom:-40,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.08)"}}/>
+          <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",gap:20,position:"relative"}}>
+            <div>
+              <p style={{color:"#fbbf24",fontWeight:800,fontSize:11,marginBottom:6,textTransform:"uppercase",letterSpacing:.08}}>🎉 Offre Spéciale — Durée limitée</p>
+              <h3 style={{fontSize:"clamp(20px,4vw,30px)",fontWeight:900,color:"#fff",marginBottom:8}}>Jusqu'à <span style={{color:"#fbbf24"}}>-30%</span> sur les Smartphones</h3>
+              <p style={{color:"rgba(255,255,255,.7)",fontSize:13}}>Profitez-en avant la fin du mois !</p>
+            </div>
+            <button onClick={()=>go("catalog",{cat:"Smartphones"})} style={{padding:"12px 26px",background:"#fbbf24",color:"#1e293b",border:"none",borderRadius:14,fontWeight:800,fontSize:14,cursor:"pointer",boxShadow:"0 4px 20px rgba(251,191,36,.5)",fontFamily:"'Sora',sans-serif",flexShrink:0}}>
+              Profiter →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CATALOG ──
+function Catalog({go,initCat,q,products=PRODS,categories=CATS}){
+  const[cat,setCat]=useState(initCat||"Tous");
+  const[sort,setSort]=useState("popular");
+  const[budget,setBudget]=useState([0,1000000]);
+  const[vis,setVis]=useState(12);
+
+  useEffect(()=>{if(initCat)setCat(initCat);},[initCat]);
+
+  const list=useMemo(()=>products.filter(p=>{
+    const catOk=cat==="Tous"||p.cat===cat;
+    const priceOk=p.price>=budget[0]&&p.price<=budget[1];
+    const qOk=!q.trim()||p.name.toLowerCase().includes(q.toLowerCase())||p.cat.toLowerCase().includes(q.toLowerCase());
+    return catOk&&priceOk&&qOk;
+  }).sort((a,b)=>sort==="price_asc"?a.price-b.price:sort==="price_desc"?b.price-a.price:sort==="rating"?b.rating-a.rating:b.rev-a.rev),[cat,sort,budget,q]);
+
+  return(
+    <div style={{maxWidth:1280,margin:"0 auto",padding:"20px 16px 40px"}}>
+      <div style={{fontSize:11,color:"#94a3b8",marginBottom:16,display:"flex",alignItems:"center",gap:6}}>
+        <button onClick={()=>go("home")} style={{border:"none",background:"none",cursor:"pointer",color:"#94a3b8",fontSize:11}} onMouseEnter={e=>e.currentTarget.style.color=BLUE} onMouseLeave={e=>e.currentTarget.style.color="#94a3b8"}>Accueil</button>
+        <span>›</span><span style={{color:"#1e293b",fontWeight:600}}>Catalogue</span>
+        {q&&<><span>›</span><span style={{color:BLUE,fontWeight:600}}>"{q}"</span></>}
+      </div>
+
+      <div style={{display:"flex",gap:20,alignItems:"flex-start"}}>
+        {/* Sidebar */}
+        <aside style={{width:210,flexShrink:0}} className="hide-mobile">
+          <div style={{background:"#fff",borderRadius:16,border:"1px solid #f1f5f9",padding:16,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+            <p style={{fontSize:10,fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.1,marginBottom:8}}>Catégories</p>
+            {["Tous",...categories.map(c=>c.name)].map(c=>(
+              <button key={c} onClick={()=>setCat(c)} style={{
+                display:"block",width:"100%",textAlign:"left",padding:"7px 12px",borderRadius:10,border:"none",
+                background:cat===c?BLUE:"transparent",color:cat===c?"#fff":"#475569",
+                fontSize:12,fontWeight:cat===c?700:500,cursor:"pointer",marginBottom:2,
+                fontFamily:"'Sora',sans-serif",transition:"all .15s"
+              }}>{c}</button>
+            ))}
+            <p style={{fontSize:10,fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.1,margin:"16px 0 8px"}}>Trier par</p>
+            <select value={sort} onChange={e=>setSort(e.target.value)} style={{width:"100%",padding:"8px 10px",borderRadius:10,border:"1px solid #e2e8f0",fontSize:12,background:"#fff",fontFamily:"'Sora',sans-serif"}}>
+              <option value="popular">Plus populaires</option>
+              <option value="rating">Mieux notés</option>
+              <option value="price_asc">Prix croissant</option>
+              <option value="price_desc">Prix décroissant</option>
+            </select>
+            <p style={{fontSize:10,fontWeight:800,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.1,margin:"16px 0 8px"}}>Budget</p>
+            {[[0,100000,"< 100K"],[100000,300000,"100K–300K"],[300000,600000,"300K–600K"],[600000,1000000,"> 600K"]].map(([mn,mx,lb])=>(
+              <button key={lb} onClick={()=>setBudget([mn,mx])} style={{
+                display:"block",width:"100%",textAlign:"left",padding:"6px 12px",borderRadius:10,border:"none",
+                background:budget[0]===mn&&budget[1]===mx?"#eff6ff":"transparent",
+                color:budget[0]===mn&&budget[1]===mx?BLUE:"#475569",
+                fontSize:12,fontWeight:budget[0]===mn&&budget[1]===mx?700:500,cursor:"pointer",marginBottom:2,
+                fontFamily:"'Sora',sans-serif"
+              }}>{lb}</button>
+            ))}
+            {(cat!=="Tous"||budget[0]!==0||budget[1]!==1000000)&&(
+              <button onClick={()=>{setCat("Tous");setBudget([0,1000000]);}} style={{width:"100%",marginTop:12,padding:"7px 12px",borderRadius:10,border:"1px solid #e2e8f0",background:"none",fontSize:11,color:"#94a3b8",cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>
+                ✕ Effacer les filtres
+              </button>
+            )}
+          </div>
+        </aside>
+
+        {/* Grid */}
+        <div style={{flex:1}}>
+          <p style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>
+            <strong style={{color:"#1e293b"}}>{list.length}</strong> produit{list.length!==1?"s":""} trouvé{list.length!==1?"s":""}
+          </p>
+          {list.length===0?(
+            <div style={{textAlign:"center",padding:"60px 20px",color:"#94a3b8"}}>
+              <p style={{fontSize:40,marginBottom:12,opacity:.3}}>📦</p>
+              <p style={{fontWeight:700,color:"#64748b",marginBottom:8}}>Aucun produit trouvé</p>
+              <button onClick={()=>{setCat("Tous");setBudget([0,1000000]);}} style={{fontSize:12,color:BLUE,border:"none",background:"none",cursor:"pointer",textDecoration:"underline"}}>Effacer les filtres</button>
+            </div>
+          ):(
+            <>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))",gap:14,marginBottom:20}}>
+                {list.slice(0,vis).map(p=><ProductCard key={p.id} p={p} go={go}/>)}
+              </div>
+              {vis<list.length&&(
+                <div style={{textAlign:"center",marginTop:8}}>
+                  <button onClick={()=>setVis(v=>v+8)} style={{padding:"10px 28px",borderRadius:12,border:`2px solid ${BLUE}`,background:"none",color:BLUE,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"'Sora',sans-serif",transition:"all .2s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=BLUE;e.currentTarget.style.color="#fff";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=BLUE;}}>
+                    Voir plus ({list.length-vis} restants)
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PRODUCT PAGE ──
+function ProductPage({p,go,allProducts=PRODS}){
+  const{dispatch}=useCart();
+  const{ids,toggle}=useWish();
+  const{push}=useToast();
+  const[qty,setQty]=useState(1);
+  const[added,setAdded]=useState(false);
+  const liked=ids.has(p.id);
+  const disc=p.orig?Math.round((1-p.price/p.orig)*100):0;
+  const max=p.stock??99;
+
+  useEffect(()=>{setQty(1);setAdded(false);},[p.id]);
+
+  const related=allProducts.filter(x=>x.cat===p.cat&&x.id!==p.id).slice(0,4);
+
+  const add=()=>{
+    for(let i=0;i<qty;i++)dispatch({type:"ADD",p});
+    push(`${p.name.slice(0,20)}... ajouté au panier !`);
+    setAdded(true);setTimeout(()=>setAdded(false),2000);
+  };
+
+  return(
+    <div style={{maxWidth:1280,margin:"0 auto",padding:"20px 16px 40px"}}>
+      <div style={{fontSize:11,color:"#94a3b8",marginBottom:20,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+        <button onClick={()=>go("home")} style={{border:"none",background:"none",cursor:"pointer",color:"#94a3b8",fontSize:11}}>Accueil</button>
+        <span>›</span>
+        <button onClick={()=>go("catalog",{cat:p.cat})} style={{border:"none",background:"none",cursor:"pointer",color:"#94a3b8",fontSize:11}}>{p.cat}</button>
+        <span>›</span>
+        <span style={{color:"#1e293b",fontWeight:600}}>{p.name}</span>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:32,marginBottom:40}} className="md:grid-cols-2">
+        {/* Image */}
+        <div>
+          <div style={{borderRadius:24,overflow:"hidden",aspectRatio:"1",background:"#f8fafc",position:"relative"}}>
+            <SafeImg src={p.img} alt={p.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            {disc>0&&<span style={{position:"absolute",top:16,left:16,padding:"4px 12px",borderRadius:99,background:"#ef4444",color:"#fff",fontSize:12,fontWeight:800}}>-{disc}%</span>}
+          </div>
+        </div>
+
+        {/* Info */}
+        <div>
+          <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+            <span style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:.08,color:BLUE,background:"#eff6ff",padding:"3px 10px",borderRadius:99}}>{p.cat}</span>
+            {p.badge&&<span style={{fontSize:10,fontWeight:800,background:"#fef3c7",color:"#b45309",padding:"3px 10px",borderRadius:99}}>{p.badge}</span>}
+          </div>
+          <h1 style={{fontSize:"clamp(18px,3vw,26px)",fontWeight:900,color:"#0f172a",lineHeight:1.25,marginBottom:12}}>{p.name}</h1>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+            <Stars rating={p.rating} size={14}/>
+            <span style={{fontWeight:700,fontSize:13,color:"#334155"}}>{p.rating}</span>
+            <span style={{fontSize:12,color:"#94a3b8"}}>({p.rev} avis)</span>
+          </div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:14}}>
+            <span style={{fontSize:30,fontWeight:900,color:BLUE}}>{fmt(p.price)}</span>
+            {p.orig&&<span style={{fontSize:14,color:"#94a3b8",textDecoration:"line-through",marginBottom:4}}>{fmt(p.orig)}</span>}
+          </div>
+          <p style={{fontSize:13,color:"#475569",lineHeight:1.7,marginBottom:16}}>{p.desc}</p>
+          {p.specs&&(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:16}}>
+              {p.specs.map((s,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:6,background:"#f8fafc",borderRadius:10,padding:"7px 10px",fontSize:11,fontWeight:600,color:"#334155"}}>
+                  <span style={{color:BLUE,fontSize:12}}>✓</span>{s}
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:16,fontSize:12,fontWeight:600,color:max>5?"#047857":max>0?"#b45309":"#dc2626"}}>
+            <span style={{width:8,height:8,borderRadius:"50%",background:max>5?"#10b981":max>0?"#f59e0b":"#ef4444",display:"inline-block"}}/>
+            {max>5?"En stock":max>0?`⚠ Plus que ${max} en stock`:"Rupture de stock"}
+          </div>
+          {max>0&&(
+            <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:16}}>
+              <div style={{display:"flex",alignItems:"center",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+                <button onClick={()=>setQty(q=>Math.max(1,q-1))} style={{width:38,height:44,border:"none",background:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>−</button>
+                <span style={{width:40,textAlign:"center",fontWeight:800,fontSize:14}}>{qty}</span>
+                <button onClick={()=>setQty(q=>Math.min(q+1,max))} disabled={qty>=max} style={{width:38,height:44,border:"none",background:"none",cursor:qty>=max?"not-allowed":"pointer",fontSize:16,fontWeight:700,opacity:qty>=max?.4:1}}>+</button>
+              </div>
+              <button onClick={add} style={{flex:1,padding:"12px 16px",borderRadius:12,border:"none",cursor:"pointer",fontWeight:700,fontSize:13,
+                background:added?"#10b981":grad,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontFamily:"'Sora',sans-serif",transition:"background .2s"}}>
+                {added?"✓ Ajouté au panier !":"🛒 Ajouter au panier"}
+              </button>
+              <button onClick={()=>{toggle(p.id);push(liked?"Retiré des favoris":"Ajouté aux favoris 💛");}} style={{width:44,height:44,borderRadius:12,border:`2px solid ${liked?"#fca5a5":"#e2e8f0"}`,background:liked?"#fef2f2":"none",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {liked?"❤️":"🤍"}
+              </button>
+            </div>
+          )}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+            {[["🚚","Livraison 24-48h"],["🔒","Garanti Officiel"],["🔄","Retour 7 jours"]].map(([ic,t],i)=>(
+              <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,background:"#f8fafc",borderRadius:12,padding:10,textAlign:"center"}}>
+                <span style={{fontSize:18}}>{ic}</span>
+                <span style={{fontSize:10,color:"#475569",fontWeight:600,lineHeight:1.3}}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {related.length>0&&(
+        <section>
+          <h2 style={{fontSize:18,fontWeight:900,color:"#0f172a",marginBottom:14}}>Produits similaires</h2>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))",gap:14}}>
+            {related.map(rp=><ProductCard key={rp.id} p={rp} go={go}/>)}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+// ── CHECKOUT ──
+function Checkout({go}){
+  const{items,total,dispatch}=useCart();
+  const{push}=useToast();
+  const[step,setStep]=useState(1);
+  const[pay,setPay]=useState("cod");
+  const[form,setForm]=useState({prenom:"",nom:"",telephone:"",adresse:"",quartier:"",ville:"Dakar"});
+  const[err,setErr]=useState({});
+  const[done,setDone]=useState(false);
+  const[submitting,setSubmitting]=useState(false);
+  const orderId=useRef(null); // sera rempli par la réponse Odoo
+  const VILLES=["Dakar","Thiès","Saint-Louis","Kaolack","Ziguinchor","Tambacounda","Louga","Fatick"];
+
+  const inp=e=>{setForm(f=>({...f,[e.target.name]:e.target.value}));setErr(er=>({...er,[e.target.name]:""}));};
+
+  const validate=()=>{
+    const e={};
+    if(!form.prenom.trim())e.prenom="Requis";
+    if(!form.nom.trim())e.nom="Requis";
+    if(!/^\d{9}$/.test(form.telephone.replace(/\s/g,"")))e.telephone="9 chiffres requis";
+    if(!form.adresse.trim())e.adresse="Requise";
+    if(!form.quartier.trim())e.quartier="Requis";
+    setErr(e);
+    if(Object.keys(e).length){push("Veuillez corriger les erreurs","error");return false;}
+    return true;
+  };
+
+  const Field=({name,label,ph})=>(
+    <div>
+      <label style={{display:"block",fontSize:10,fontWeight:800,color:"#94a3b8",marginBottom:4,textTransform:"uppercase",letterSpacing:.08}}>{label}</label>
+      <input name={name} value={form[name]} onChange={inp} placeholder={ph}
+        style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${err[name]?"#fca5a5":"#e2e8f0"}`,fontSize:13,fontFamily:"'Sora',sans-serif",background:err[name]?"#fff5f5":"#fff"}}/>
+      {err[name]&&<p style={{fontSize:10,color:"#ef4444",marginTop:3}}>{err[name]}</p>}
+    </div>
+  );
+
+  if(!done&&items.length===0)return(
+    <div style={{minHeight:"60vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center"}}>
+        <p style={{fontSize:48,marginBottom:12,opacity:.3}}>🛒</p>
+        <p style={{fontWeight:700,color:"#64748b",marginBottom:16}}>Votre panier est vide</p>
+        <Btn onClick={()=>go("catalog")}>Voir les produits</Btn>
+      </div>
+    </div>
+  );
+
+  if(done)return(
+    <div style={{minHeight:"70vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{maxWidth:380,width:"100%",textAlign:"center"}}>
+        <div style={{width:72,height:72,borderRadius:"50%",background:"#10b981",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:36,boxShadow:"0 8px 24px rgba(16,185,129,.3)"}}>✓</div>
+        <h2 style={{fontSize:24,fontWeight:900,color:"#0f172a",marginBottom:10}}>Commande confirmée ! 🎉</h2>
+        <p style={{fontSize:13,color:"#64748b",lineHeight:1.6,marginBottom:20}}>Merci <strong>{form.prenom}</strong> ! Vous recevrez un SMS de confirmation au <strong>+221 {form.telephone}</strong>.</p>
+        <div style={{background:"#eff6ff",borderRadius:16,padding:16,textAlign:"left",marginBottom:20}}>
+          <p style={{fontSize:14,fontWeight:900,color:DARK_BLUE,marginBottom:8}}>
+            {orderId.current ? `Réf Odoo : ${orderId.current}` : "Commande enregistrée"}
+          </p>
+          {[["Livraison estimée","24–48 heures"],["Adresse",`${form.quartier}, ${form.ville}`],["Paiement",pay==="cod"?"À la livraison":"Mobile Money"]].map(([k,v])=>(
+            <p key={k} style={{fontSize:12,color:"#2563eb",marginBottom:4}}>{k} : <strong>{v}</strong></p>
+          ))}
+        </div>
+        <Btn onClick={()=>go("home")} style={{width:"100%",borderRadius:12}}>Retour à l'accueil →</Btn>
+      </div>
+    </div>
+  );
+
+  return(
+    <div style={{maxWidth:900,margin:"0 auto",padding:"20px 16px 40px"}}>
+      <button onClick={()=>go("catalog")} style={{border:"none",background:"none",cursor:"pointer",color:"#94a3b8",fontSize:12,marginBottom:16,display:"flex",alignItems:"center",gap:4}}>← Retour au catalogue</button>
+      <h1 style={{fontSize:22,fontWeight:900,color:"#0f172a",marginBottom:20}}>Finaliser la commande</h1>
+
+      {/* Steps */}
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:24}}>
+        {[{n:1,l:"Livraison"},{n:2,l:"Paiement"},{n:3,l:"Confirmation"}].map((s,i)=>(
+          <React.Fragment key={s.n}>
+            <div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",borderRadius:99,fontSize:11,fontWeight:700,
+              background:step>=s.n?BLUE:"#f1f5f9",color:step>=s.n?"#fff":"#94a3b8",transition:"all .2s"}}>
+              <span style={{width:18,height:18,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>
+                {step>s.n?"✓":s.n}
+              </span>
+              {s.l}
+            </div>
+            {i<2&&<div style={{flex:1,maxWidth:30,height:2,background:step>s.n?BLUE:"#e2e8f0",transition:"background .2s"}}/>}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:20,alignItems:"start"}}>
+        <div>
+          {/* Step 1 */}
+          {step===1&&(
+            <div style={{background:"#fff",borderRadius:20,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              <h2 style={{fontSize:15,fontWeight:800,color:"#0f172a",marginBottom:20,display:"flex",alignItems:"center",gap:8}}>📍 Infos de livraison</h2>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                <Field name="prenom" label="Prénom *" ph="Moussa"/>
+                <Field name="nom" label="Nom *" ph="Diallo"/>
+              </div>
+              <div style={{marginBottom:12}}>
+                <label style={{display:"block",fontSize:10,fontWeight:800,color:"#94a3b8",marginBottom:4,textTransform:"uppercase"}}>Téléphone *</label>
+                <div style={{display:"flex",gap:8}}>
+                  <div style={{padding:"10px 12px",borderRadius:10,border:"1px solid #e2e8f0",background:"#f8fafc",fontSize:12,color:"#64748b",flexShrink:0,display:"flex",alignItems:"center",gap:4}}>🇸🇳 +221</div>
+                  <div style={{flex:1}}>
+                    <input name="telephone" value={form.telephone} onChange={inp} placeholder="77 000 00 00"
+                      style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1px solid ${err.telephone?"#fca5a5":"#e2e8f0"}`,fontSize:13,fontFamily:"'Sora',sans-serif"}}/>
+                    {err.telephone&&<p style={{fontSize:10,color:"#ef4444",marginTop:3}}>{err.telephone}</p>}
+                  </div>
+                </div>
+              </div>
+              <div style={{marginBottom:12}}><Field name="adresse" label="Adresse *" ph="Rue, numéro, bâtiment..."/></div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+                <Field name="quartier" label="Quartier *" ph="Plateau, Almadies..."/>
+                <div>
+                  <label style={{display:"block",fontSize:10,fontWeight:800,color:"#94a3b8",marginBottom:4,textTransform:"uppercase"}}>Ville</label>
+                  <select name="ville" value={form.ville} onChange={inp} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1px solid #e2e8f0",fontSize:13,fontFamily:"'Sora',sans-serif",background:"#fff"}}>
+                    {VILLES.map(v=><option key={v}>{v}</option>)}
+                  </select>
+                </div>
+              </div>
+              <Btn onClick={()=>{if(validate())setStep(2);}} style={{width:"100%",borderRadius:12,padding:"13px 20px"}}>
+                Continuer vers le paiement →
+              </Btn>
+            </div>
+          )}
+
+          {/* Step 2 */}
+          {step===2&&(
+            <div style={{background:"#fff",borderRadius:20,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              <h2 style={{fontSize:15,fontWeight:800,color:"#0f172a",marginBottom:20,display:"flex",alignItems:"center",gap:8}}>💳 Méthode de paiement</h2>
+              {[["cod","💵","Paiement à la livraison","Payez en cash à la réception"],["online","📱","Mobile Money","Wave, Orange Money ou Free Money"]].map(([v,em,t,s])=>(
+                <label key={v} onClick={()=>setPay(v)} style={{display:"flex",alignItems:"flex-start",gap:12,padding:14,borderRadius:14,border:`2px solid ${pay===v?BLUE:"#e2e8f0"}`,background:pay===v?"#eff6ff":"#fff",cursor:"pointer",marginBottom:10,transition:"all .2s"}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${pay===v?BLUE:"#cbd5e1"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+                    {pay===v&&<div style={{width:8,height:8,borderRadius:"50%",background:BLUE}}/>}
+                  </div>
+                  <span style={{fontSize:22}}>{em}</span>
+                  <div>
+                    <p style={{fontSize:13,fontWeight:700,color:"#1e293b"}}>{t}</p>
+                    <p style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s}</p>
+                    {v==="online"&&pay==="online"&&(
+                      <div style={{display:"flex",gap:6,marginTop:8}}>
+                        {[["🌊","Wave"],["🟠","Orange Money"],["💙","Free Money"]].map(([e,n])=>(
+                          <span key={n} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:8,border:"1px solid #e2e8f0",background:"#fff",display:"flex",alignItems:"center",gap:3}}>{e} {n}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </label>
+              ))}
+              {pay==="online"&&(
+                <div style={{display:"flex",gap:8,padding:12,background:"#fffbeb",borderRadius:12,border:"1px solid #fde68a",marginBottom:16}}>
+                  <span style={{fontSize:14,flexShrink:0}}>⚠</span>
+                  <p style={{fontSize:11,color:"#b45309"}}>Paiement mobile en cours d'intégration. Notre équipe vous enverra un lien de paiement par SMS.</p>
+                </div>
+              )}
+              <div style={{display:"flex",gap:10,marginTop:8}}>
+                <button onClick={()=>setStep(1)} style={{padding:"10px 16px",borderRadius:10,border:"1px solid #e2e8f0",background:"none",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>← Retour</button>
+                <Btn onClick={()=>setStep(3)} style={{flex:1,borderRadius:12}}>Vérifier la commande →</Btn>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3 */}
+          {step===3&&(
+            <div style={{background:"#fff",borderRadius:20,border:"1px solid #f1f5f9",padding:24,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+              <h2 style={{fontSize:15,fontWeight:800,color:"#0f172a",marginBottom:16}}>📋 Récapitulatif final</h2>
+              <div style={{background:"#f8fafc",borderRadius:12,padding:12,marginBottom:16}}>
+                {[["Client",`${form.prenom} ${form.nom}`],["Téléphone",`+221 ${form.telephone}`],["Livraison",`${form.adresse}, ${form.quartier}, ${form.ville}`],["Paiement",pay==="cod"?"À la livraison":"Mobile Money"]].map(([k,v])=>(
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:12}}>
+                    <span style={{color:"#94a3b8"}}>{k}</span>
+                    <span style={{fontWeight:600,textAlign:"right",maxWidth:"60%"}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{maxHeight:180,overflowY:"auto",marginBottom:16}}>
+                {items.map(item=>(
+                  <div key={item.id} style={{display:"flex",gap:10,alignItems:"center",marginBottom:10}}>
+                    <SafeImg src={item.img} alt={item.name} style={{width:36,height:36,borderRadius:8,objectFit:"cover",flexShrink:0}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{fontSize:11,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</p>
+                      <p style={{fontSize:10,color:"#94a3b8"}}>× {item.qty}</p>
+                    </div>
+                    <p style={{fontSize:11,fontWeight:800,color:BLUE,flexShrink:0}}>{fmt(item.price*item.qty)}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{borderTop:"1px solid #f1f5f9",paddingTop:12,marginBottom:16}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#94a3b8",marginBottom:6}}>
+                  <span>Livraison</span><span style={{color:"#059669",fontWeight:700}}>Gratuite 🎉</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",fontWeight:900,fontSize:15}}>
+                  <span>Total à payer</span><span style={{color:BLUE}}>{fmt(total)}</span>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setStep(2)} style={{padding:"10px 16px",borderRadius:10,border:"1px solid #e2e8f0",background:"none",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>← Retour</button>
+                <button onClick={async()=>{
+                    setSubmitting(true);
+                    try{
+                      const res=await api.createOrder({
+                        delivery:form,
+                        items:items.map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty})),
+                        payMethod:pay,
+                      });
+                      if(res.success){
+                        orderId.current=res.data.orderName;
+                        dispatch({type:"CLEAR"});
+                        setDone(true);
+                        push("Commande confirmée ! 🎉");
+                      } else {
+                        push(res.error||"Erreur lors de la commande","error");
+                      }
+                    }catch(e){push("Erreur réseau : "+e.message,"error");}
+                    finally{setSubmitting(false);}
+                  }}
+                  disabled={submitting}
+                  style={{flex:1,padding:"13px 20px",borderRadius:12,border:"none",
+                    background:submitting?"#94a3b8":"#10b981",
+                    color:"#fff",fontWeight:800,fontSize:13,cursor:submitting?"not-allowed":"pointer",
+                    fontFamily:"'Sora',sans-serif",boxShadow:submitting?"none":"0 4px 16px rgba(16,185,129,.35)",
+                    display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all .2s"}}>
+                  {submitting
+                    ? <><span style={{width:16,height:16,border:"2px solid rgba(255,255,255,.4)",borderTopColor:"#fff",borderRadius:"50%",display:"inline-block",animation:"spin .7s linear infinite"}}/>Envoi en cours...</>
+                    : <>✓ Confirmer la commande</>}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Summary sidebar */}
+        <div style={{width:240,flexShrink:0}} className="hide-mobile">
+          <div style={{background:"#fff",borderRadius:16,border:"1px solid #f1f5f9",padding:16,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,.06)"}}>
+            <p style={{fontWeight:800,fontSize:13,marginBottom:12}}>Votre commande</p>
+            <div style={{maxHeight:180,overflowY:"auto",marginBottom:12}}>
+              {items.map(item=>(
+                <div key={item.id} style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+                  <SafeImg src={item.img} alt={item.name} style={{width:32,height:32,borderRadius:8,objectFit:"cover",flexShrink:0}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</p>
+                    <p style={{fontSize:10,color:"#94a3b8"}}>×{item.qty}</p>
+                  </div>
+                  <p style={{fontSize:10,fontWeight:800,color:BLUE,flexShrink:0}}>{fmt(item.price*item.qty)}</p>
+                </div>
+              ))}
+            </div>
+            <div style={{borderTop:"1px solid #f1f5f9",paddingTop:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#94a3b8",marginBottom:4}}>
+                <span>Livraison</span><span style={{color:"#059669",fontWeight:700}}>Gratuite</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",fontWeight:900,fontSize:14}}>
+                <span>Total</span><span style={{color:BLUE}}>{fmt(total)}</span>
+              </div>
+            </div>
+          </div>
+          <div style={{background:"#eff6ff",borderRadius:14,padding:12}}>
+            {[["🔒","Paiement sécurisé"],["🚚","Livraison 24-48h"],["📞","Support 7j/7"]].map(([ic,t])=>(
+              <p key={t} style={{fontSize:11,color:"#1d4ed8",display:"flex",alignItems:"center",gap:6,marginBottom:4,fontWeight:600}}><span>{ic}</span>{t}</p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── WISHLIST ──
+function Wishlist({go,allProducts=PRODS}){
+  const{ids}=useWish();
+  const wish=allProducts.filter(p=>ids.has(p.id));
+  return(
+    <div style={{maxWidth:1280,margin:"0 auto",padding:"20px 16px 40px"}}>
+      <h1 style={{fontSize:22,fontWeight:900,color:"#0f172a",marginBottom:20,display:"flex",alignItems:"center",gap:8}}>
+        ❤️ Mes Favoris <span style={{fontSize:15,color:"#94a3b8",fontWeight:500}}>({wish.length})</span>
+      </h1>
+      {wish.length===0?(
+        <div style={{textAlign:"center",padding:"60px 20px",color:"#94a3b8"}}>
+          <p style={{fontSize:48,marginBottom:12,opacity:.3}}>🤍</p>
+          <p style={{fontWeight:700,color:"#64748b",marginBottom:16}}>Aucun favori pour l'instant</p>
+          <Btn onClick={()=>go("catalog")}>Découvrir les produits</Btn>
+        </div>
+      ):(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))",gap:14}}>
+          {wish.map(p=><ProductCard key={p.id} p={p} go={go}/>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ACCOUNT ──
+function Account({go}){
+  return(
+    <div style={{maxWidth:520,margin:"0 auto",padding:"24px 16px 40px"}}>
+      <div style={{background:"#fff",borderRadius:24,border:"1px solid #f1f5f9",overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,.06)"}}>
+        <div style={{background:grad,padding:"32px 24px",textAlign:"center"}}>
+          <div style={{width:64,height:64,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",fontSize:30}}>👤</div>
+          <h2 style={{color:"#fff",fontWeight:900,fontSize:18}}>Bienvenue !</h2>
+          <p style={{color:"rgba(255,255,255,.7)",fontSize:12,marginTop:4}}>Connectez-vous pour accéder à votre compte</p>
+        </div>
+        <div style={{padding:24}}>
+          <Btn style={{width:"100%",borderRadius:12,padding:"12px 20px",marginBottom:10}}>👤 Se connecter</Btn>
+          <Btn outline style={{width:"100%",borderRadius:12,padding:"12px 20px",marginBottom:20}}>Créer un compte</Btn>
+          <div style={{borderTop:"1px solid #f1f5f9",paddingTop:16}}>
+            {["🛍 Mes commandes","📍 Mes adresses","❤️ Mes favoris","⚙️ Paramètres"].map(item=>(
+              <button key={item} onClick={item.includes("favoris")?()=>go("wishlist"):undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"10px 12px",borderRadius:10,border:"none",background:"none",cursor:"pointer",fontSize:13,fontWeight:500,fontFamily:"'Sora',sans-serif",marginBottom:2}}
+                onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                <span>{item}</span><span style={{color:"#94a3b8"}}>›</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ADMIN ──
+function Admin({onExit}){
+  const[tab,setTab]=useState("dash");
+  const[orders,setOrders]=useState(INIT_ORDERS);
+  const[prods,setProds]=useState(PRODS);
+  const[showAdd,setShowAdd]=useState(false);
+  const[np,setNp]=useState({name:"",cat:"Smartphones",price:"",orig:"",stock:"",desc:""});
+  const[npErr,setNpErr]=useState({});
+  const[odooStatus,setOdooStatus]=useState("checking"); // checking | ok | error
+  const[loadingProds,setLoadingProds]=useState(false);
+  const[loadingOrders,setLoadingOrders]=useState(false);
+  const{push}=useToast();
+
+  // ── Vérification connexion Odoo au démarrage ──
+  useEffect(()=>{
+    (async()=>{
+      const h=await api.healthCheck();
+      setOdooStatus(h.status==="ok"?"ok":"error");
+    })();
+  },[]);
+
+  // ── Chargement produits depuis Odoo ──
+  const loadProducts=useCallback(async()=>{
+    setLoadingProds(true);
+    try{
+      const res=await api.getProducts();
+      if(res.success&&res.data) setProds(res.data);
+      else push("Impossible de charger les produits Odoo","warn");
+    }catch(e){push("Erreur produits: "+e.message,"error");}
+    finally{setLoadingProds(false);}
+  },[]);
+
+  // ── Chargement commandes depuis Odoo ──
+  const loadOrders=useCallback(async()=>{
+    setLoadingOrders(true);
+    try{
+      const res=await api.getOrders();
+      if(res.success&&res.data) setOrders(res.data);
+      else push("Impossible de charger les commandes Odoo","warn");
+    }catch(e){push("Erreur commandes: "+e.message,"error");}
+    finally{setLoadingOrders(false);}
+  },[]);
+
+  useEffect(()=>{ loadProducts(); loadOrders(); },[]);
+
+  // ── Changement statut commande via Odoo ──
+  const changeOrderStatus=async(orderId,odooId,newState)=>{
+    const statusMap={"En attente":"draft","En transit":"sale","Livré":"done","Annulé":"cancel"};
+    try{
+      await api.updateOrderStatus(odooId,statusMap[newState]||newState);
+      setOrders(or=>or.map(x=>(x.id===orderId||x.odooId===odooId)?{...x,status:newState}:x));
+      push(`Commande mise à jour → ${newState}`);
+    }catch(e){
+      // Si pas d'ID Odoo (mode démo), on met à jour localement quand même
+      setOrders(or=>or.map(x=>x.id===orderId?{...x,status:newState}:x));
+      push(`Statut: ${newState}`);
+    }
+  };
+
+  const stats=[
+    {l:"Chiffre d'affaires",v:fmt(orders.filter(o=>o.status==="Livré").reduce((s,o)=>s+(o.total||0),0)||4850000),ch:"+12%",bg:"#eff6ff",c:BLUE,ic:"📊"},
+    {l:"Commandes",          v:orders.length,   ch:"+8%", bg:"#f0fdf4",c:"#059669",ic:"🛍"},
+    {l:"Produits actifs",    v:prods.length,    ch:"+3",  bg:"#fffbeb",c:"#d97706",ic:"📦"},
+    {l:"Clients",            v:new Set(orders.map(o=>o.customer)).size||892,ch:"+24",bg:"#f5f3ff",c:"#7c3aed",ic:"👥"},
+  ];
+  const TABS={dash:"Tableau de bord",products:"Produits",orders:"Commandes",customers:"Clients",analytics:"Statistiques",settings:"Paramètres"};
+
+  const saveProduct=()=>{
+    const e={};
+    if(!np.name.trim())e.name="Requis";
+    if(!np.price||isNaN(+np.price)||+np.price<=0)e.price="Prix invalide";
+    setNpErr(e);
+    if(Object.keys(e).length){push("Corriger les erreurs","error");return;}
+    setProds(p=>[{id:Date.now(),name:np.name,cat:np.cat,price:+np.price,orig:np.orig?+np.orig:null,stock:+np.stock||0,rating:0,rev:0,img:PLACEHOLDER,badge:"Nouveau",desc:np.desc,specs:[]},...p]);
+    setNp({name:"",cat:"Smartphones",price:"",orig:"",stock:"",desc:""});
+    setNpErr({});setShowAdd(false);push("Produit ajouté !");
+  };
+
+  const NavBtn=({id,ic,label})=>(
+    <button onClick={()=>setTab(id)} style={{
+      display:"flex",alignItems:"center",gap:8,width:"100%",padding:"9px 12px",borderRadius:10,border:"none",
+      background:tab===id?grad:"transparent",color:tab===id?"#fff":"#64748b",
+      fontSize:12,fontWeight:tab===id?700:500,cursor:"pointer",fontFamily:"'Sora',sans-serif",marginBottom:2,transition:"all .15s"
+    }}><span>{ic}</span>{label}</button>
+  );
+
+  return(
+    <div style={{display:"flex",height:"100vh",background:"#f8fafc",overflow:"hidden",fontFamily:"'Sora',sans-serif"}}>
+      {/* Sidebar */}
+      <aside style={{width:210,background:"#fff",borderRight:"1px solid #f1f5f9",display:"flex",flexDirection:"column",flexShrink:0}}>
+        <div style={{padding:"16px 14px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:32,height:32,borderRadius:10,background:grad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🛍</div>
+          <div><p style={{fontWeight:900,fontSize:11,color:"#0f172a"}}>Kumpax Store</p><p style={{fontSize:10,color:"#94a3b8"}}>Administration</p></div>
+        </div>
+        <nav style={{flex:1,padding:12}}>
+          <NavBtn id="dash"      ic="📊" label="Tableau de bord"/>
+          <NavBtn id="products"  ic="📦" label="Produits"/>
+          <NavBtn id="orders"    ic="🛍" label="Commandes"/>
+          <NavBtn id="customers" ic="👥" label="Clients"/>
+          <NavBtn id="analytics" ic="📈" label="Statistiques"/>
+        </nav>
+        <div style={{padding:12,borderTop:"1px solid #f1f5f9"}}>
+          <NavBtn id="settings" ic="⚙️" label="Paramètres"/>
+          <button onClick={onExit} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"9px 12px",borderRadius:10,border:"none",background:"none",color:"#ef4444",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>
+            🚪 Retour boutique
+          </button>
+        </div>
+      </aside>
+
+      {/* Content */}
+      <main style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
+        <div style={{background:"#fff",borderBottom:"1px solid #f1f5f9",padding:"12px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10}}>
+          <div>
+            <h1 style={{fontWeight:900,fontSize:15,color:"#0f172a"}}>{TABS[tab]}</h1>
+            <p style={{fontSize:10,color:"#94a3b8"}}>Bonjour, Administrateur 👋</p>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:99,fontSize:10,fontWeight:700,
+              background:odooStatus==="ok"?"#d1fae5":odooStatus==="error"?"#fee2e2":"#fef3c7",
+              color:odooStatus==="ok"?"#047857":odooStatus==="error"?"#dc2626":"#b45309"}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:"currentColor",display:"inline-block"}}/>
+              {odooStatus==="ok"?"🔗 Odoo connecté":odooStatus==="error"?"⚠ Odoo hors ligne":"⏳ Vérification..."}
+            </div>
+            <div style={{position:"relative",cursor:"pointer",fontSize:18}}>🔔<span style={{position:"absolute",top:0,right:0,width:7,height:7,borderRadius:"50%",background:"#ef4444",border:"1px solid #fff"}}/></div>
+            <div style={{display:"flex",alignItems:"center",gap:6,background:"#eff6ff",borderRadius:10,padding:"6px 10px"}}>
+              <div style={{width:24,height:24,borderRadius:"50%",background:BLUE,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:10,fontWeight:900}}>A</div>
+              <span style={{fontSize:11,fontWeight:700,color:"#334155"}}>Admin</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{padding:24,flex:1}}>
+          {/* Dashboard */}
+          {tab==="dash"&&(
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:20}}>
+                {stats.map((s,i)=>(
+                  <div key={i} style={{background:"#fff",borderRadius:16,padding:16,border:"1px solid #f1f5f9",boxShadow:"0 1px 4px rgba(0,0,0,.05)"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                      <div style={{width:36,height:36,borderRadius:10,background:s.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{s.ic}</div>
+                      <span style={{fontSize:10,fontWeight:800,color:"#059669",background:"#ecfdf5",padding:"2px 7px",borderRadius:99,display:"flex",alignItems:"center",gap:2}}>↑{s.ch}</span>
+                    </div>
+                    <p style={{fontSize:17,fontWeight:900,color:"#0f172a"}}>{s.v}</p>
+                    <p style={{fontSize:10,color:"#94a3b8",marginTop:2}}>{s.l}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{background:"#fff",borderRadius:16,border:"1px solid #f1f5f9",overflow:"hidden",marginBottom:16}}>
+                <div style={{padding:"14px 20px",borderBottom:"1px solid #f1f5f9",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <p style={{fontWeight:800,fontSize:13}}>Commandes récentes</p>
+                  <button onClick={()=>setTab("orders")} style={{fontSize:11,fontWeight:700,color:BLUE,border:"none",background:"none",cursor:"pointer"}}>Voir toutes</button>
+                </div>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                  <thead><tr style={{background:"#f8fafc"}}>{["Réf.","Client","Ville","Total","Statut"].map(h=><th key={h} style={{textAlign:"left",padding:"10px 16px",fontWeight:700,color:"#94a3b8",textTransform:"uppercase",fontSize:10,letterSpacing:.05}}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {orders.map(o=>(
+                      <tr key={o.id} style={{borderTop:"1px solid #f8fafc"}}>
+                        <td style={{padding:"10px 16px",fontWeight:800,color:"#334155"}}>{o.id}</td>
+                        <td style={{padding:"10px 16px",fontWeight:600}}>{o.customer}</td>
+                        <td style={{padding:"10px 16px",color:"#94a3b8"}}>{o.city}</td>
+                        <td style={{padding:"10px 16px",fontWeight:800,color:BLUE}}>{fmt(o.total)}</td>
+                        <td style={{padding:"10px 16px"}}><StatusBadge s={o.status}/></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{background:"#fff",borderRadius:16,border:"1px solid #f1f5f9",padding:20}}>
+                <p style={{fontWeight:800,fontSize:13,marginBottom:14}}>Top Produits</p>
+                {prods.slice(0,5).map((p,i)=>(
+                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <span style={{fontSize:10,fontWeight:900,color:"#94a3b8",width:16}}>#{i+1}</span>
+                    <SafeImg src={p.img} alt={p.name} style={{width:32,height:32,borderRadius:8,objectFit:"cover"}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{fontSize:11,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</p>
+                      <p style={{fontSize:10,color:"#94a3b8"}}>{p.rev} ventes · {p.cat}</p>
+                    </div>
+                    <p style={{fontSize:11,fontWeight:800,color:BLUE,flexShrink:0}}>{fmt(p.price)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Products */}
+          {tab==="products"&&(
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <p style={{fontSize:11,color:"#94a3b8"}}>{prods.length} produit(s)</p>
+                <button onClick={()=>setShowAdd(!showAdd)} style={{padding:"8px 16px",borderRadius:10,border:"none",background:showAdd?"#f1f5f9":grad,color:showAdd?"#475569":"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>
+                  {showAdd?"✕ Annuler":"+ Nouveau produit"}
+                </button>
+              </div>
+              {showAdd&&(
+                <div style={{background:"#fff",borderRadius:16,border:"1px solid #f1f5f9",padding:20,marginBottom:16}}>
+                  <p style={{fontWeight:800,fontSize:13,marginBottom:14}}>Nouveau produit</p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                    {[["name","Nom *","Ex: Samsung A54"],["price","Prix FCFA *","250000"],["orig","Prix barré","280000"],["stock","Stock","50"]].map(([k,l,ph])=>(
+                      <div key={k}>
+                        <label style={{display:"block",fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:4,textTransform:"uppercase"}}>{l}</label>
+                        <input value={np[k]} onChange={e=>{setNp(p=>({...p,[k]:e.target.value}));setNpErr(er=>({...er,[k]:""}));}} placeholder={ph}
+                          style={{width:"100%",padding:"8px 10px",borderRadius:8,border:`1px solid ${npErr[k]?"#fca5a5":"#e2e8f0"}`,fontSize:12,fontFamily:"'Sora',sans-serif"}}/>
+                        {npErr[k]&&<p style={{fontSize:10,color:"#ef4444",marginTop:2}}>{npErr[k]}</p>}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{marginBottom:12}}>
+                    <label style={{display:"block",fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:4,textTransform:"uppercase"}}>Catégorie</label>
+                    <select value={np.cat} onChange={e=>setNp(p=>({...p,cat:e.target.value}))} style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:12,fontFamily:"'Sora',sans-serif",background:"#fff"}}>
+                      {CATS.map(c=><option key={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div style={{marginBottom:14}}>
+                    <label style={{display:"block",fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:4,textTransform:"uppercase"}}>Description</label>
+                    <textarea value={np.desc} onChange={e=>setNp(p=>({...p,desc:e.target.value}))} rows={2} placeholder="Description..." style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:12,fontFamily:"'Sora',sans-serif",resize:"none"}}/>
+                  </div>
+                  <div style={{border:"2px dashed #e2e8f0",borderRadius:12,padding:"16px",textAlign:"center",color:"#94a3b8",fontSize:11,marginBottom:14,cursor:"pointer"}}>
+                    📤 Cliquer pour ajouter une image
+                  </div>
+                  <div style={{display:"flex",gap:10}}>
+                    <button onClick={()=>{setShowAdd(false);setNpErr({});}} style={{padding:"8px 16px",borderRadius:10,border:"1px solid #e2e8f0",background:"none",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>Annuler</button>
+                    <button onClick={saveProduct} style={{flex:1,padding:"10px",borderRadius:10,border:"none",background:grad,color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Sora',sans-serif"}}>Enregistrer le produit</button>
+                  </div>
+                </div>
+              )}
+              <div style={{background:"#fff",borderRadius:16,border:"1px solid #f1f5f9",overflow:"hidden"}}>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                    <thead><tr style={{background:"#f8fafc"}}>{["Produit","Catégorie","Prix","Stock","Note","Actions"].map(h=><th key={h} style={{textAlign:"left",padding:"10px 14px",fontWeight:700,color:"#94a3b8",textTransform:"uppercase",fontSize:10}}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {prods.map(p=>(
+                        <tr key={p.id} style={{borderTop:"1px solid #f8fafc"}}>
+                          <td style={{padding:"10px 14px"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <SafeImg src={p.img} alt="" style={{width:30,height:30,borderRadius:8,objectFit:"cover",flexShrink:0}}/>
+                              <span style={{fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:180}}>{p.name}</span>
+                            </div>
+                          </td>
+                          <td style={{padding:"10px 14px",color:"#94a3b8"}}>{p.cat}</td>
+                          <td style={{padding:"10px 14px",fontWeight:800,color:BLUE}}>{fmt(p.price)}</td>
+                          <td style={{padding:"10px 14px"}}>
+                            <span style={{padding:"2px 8px",borderRadius:99,fontSize:10,fontWeight:700,
+                              background:(p.stock||0)>10?"#d1fae5":(p.stock||0)>0?"#fef3c7":"#fee2e2",
+                              color:(p.stock||0)>10?"#047857":(p.stock||0)>0?"#b45309":"#dc2626"}}>
+                              {p.stock||0} unités
+                            </span>
+                          </td>
+                          <td style={{padding:"10px 14px",fontWeight:700}}>{p.rating||"—"}</td>
+                          <td style={{padding:"10px 14px"}}>
+                            <div style={{display:"flex",gap:4}}>
+                              <button style={{width:26,height:26,borderRadius:8,border:"none",background:"#eff6ff",cursor:"pointer",fontSize:12}}>👁</button>
+                              <button style={{width:26,height:26,borderRadius:8,border:"none",background:"#f8fafc",cursor:"pointer",fontSize:12}}>✏️</button>
+                              <button onClick={()=>{setProds(pr=>pr.filter(x=>x.id!==p.id));push("Produit supprimé","warn");}} style={{width:26,height:26,borderRadius:8,border:"none",background:"#fef2f2",cursor:"pointer",fontSize:12}}>🗑</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Orders */}
+          {tab==="orders"&&(
+            <div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+                {[["En attente","#fffbeb","#b45309"],["En transit","#dbeafe","#1d4ed8"],["Livré","#d1fae5","#047857"],["Annulé","#fee2e2","#dc2626"]].map(([s,bg,c])=>(
+                  <div key={s} style={{background:bg,borderRadius:12,padding:"10px 14px",textAlign:"center"}}>
+                    <p style={{fontSize:20,fontWeight:900,color:c}}>{orders.filter(o=>o.status===s).length}</p>
+                    <p style={{fontSize:10,fontWeight:600,color:c}}>{s}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:"#fff",borderRadius:16,border:"1px solid #f1f5f9",overflow:"hidden"}}>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                    <thead><tr style={{background:"#f8fafc"}}>{["Réf.","Client","Date","Ville","Articles","Total","Statut","Changer"].map(h=><th key={h} style={{textAlign:"left",padding:"10px 14px",fontWeight:700,color:"#94a3b8",textTransform:"uppercase",fontSize:10}}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {orders.map(o=>(
+                        <tr key={o.id} style={{borderTop:"1px solid #f8fafc"}}>
+                          <td style={{padding:"10px 14px",fontWeight:800,color:"#334155"}}>{o.id}</td>
+                          <td style={{padding:"10px 14px",fontWeight:600}}>{o.customer}</td>
+                          <td style={{padding:"10px 14px",color:"#94a3b8"}}>{o.date}</td>
+                          <td style={{padding:"10px 14px",color:"#94a3b8"}}>{o.city}</td>
+                          <td style={{padding:"10px 14px",color:"#94a3b8"}}>{o.items}</td>
+                          <td style={{padding:"10px 14px",fontWeight:800,color:BLUE}}>{fmt(o.total)}</td>
+                          <td style={{padding:"10px 14px"}}><StatusBadge s={o.status}/></td>
+                          <td style={{padding:"10px 14px"}}>
+                            <select value={o.status} onChange={e=>{changeOrderStatus(o.id,o.odooId||o.id,e.target.value);}}
+                              style={{padding:"5px 8px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:11,fontFamily:"'Sora',sans-serif",background:"#fff",cursor:"pointer"}}>
+                              {["En attente","En transit","Livré","Annulé"].map(s=><option key={s}>{s}</option>)}
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {["customers","analytics","settings"].includes(tab)&&(
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:200,color:"#94a3b8",gap:8,textAlign:"center"}}>
+              <span style={{fontSize:40,opacity:.4}}>📊</span>
+              <p style={{fontWeight:700,color:"#64748b",fontSize:13}}>Module en développement</p>
+              <p style={{fontSize:11}}>Bientôt disponible !</p>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ── FOOTER ──
+function Footer({go}){
+  return(
+    <footer style={{background:"#0a1929",color:"#fff",marginTop:40}}>
+      <div style={{maxWidth:1280,margin:"0 auto",padding:"32px 16px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:24,marginBottom:28}}>
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <div style={{width:30,height:30,borderRadius:9,background:grad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🛍</div>
+              <span style={{fontSize:17,fontWeight:900}}>Kumpax<span style={{color:"#fbbf24"}}>.</span></span>
+            </div>
+            <p style={{color:"#64748b",fontSize:11,lineHeight:1.7,marginBottom:12}}>Le shopping premium au Sénégal. Produits authentiques, livraison rapide.</p>
+            <div style={{display:"flex",gap:6}}>
+              {["📘","📸","🐦"].map((ic,i)=><button key={i} style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,.08)",border:"none",cursor:"pointer",fontSize:14}}>{ic}</button>)}
+            </div>
+          </div>
+          {[{t:"Boutique",items:["Smartphones","Vêtements","Électroménager","TV & Audio"]},{t:"Service",items:["À propos","Contact","FAQ","Retours"]},{t:"Contact",items:["+221 77 000 00 00","support@kumpax.sn","Dakar, Sénégal","Lun–Sam 8h–20h"]}].map((col,i)=>(
+            <div key={i}>
+              <p style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:.1,color:"#475569",marginBottom:10}}>{col.t}</p>
+              {col.items.map(l=><p key={l} onClick={()=>go("catalog")} style={{fontSize:11,color:"#64748b",marginBottom:6,cursor:"pointer"}}
+                onMouseEnter={e=>e.currentTarget.style.color="#fbbf24"}
+                onMouseLeave={e=>e.currentTarget.style.color="#64748b"}>{l}</p>)}
+            </div>
+          ))}
+        </div>
+        <div style={{borderTop:"1px solid rgba(255,255,255,.08)",paddingTop:16,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+          <p style={{fontSize:10,color:"#475569"}}>© 2024 Kumpax Store. Tous droits réservés. 🇸🇳</p>
+          <div style={{display:"flex",gap:6}}>
+            {["Wave","Orange Money","Free Money","Cash"].map(m=><span key={m} style={{fontSize:9,background:"rgba(255,255,255,.08)",padding:"3px 8px",borderRadius:99,color:"#64748b"}}>{m}</span>)}
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ── APP ──
+function App(){
+  const[page,setPage]=useState("home");
+  const[prod,setProd]=useState(null);
+  const[admin,setAdmin]=useState(false);
+  const[cartOpen,setCartOpen]=useState(false);
+  const[q,setQ]=useState("");
+  const[initCat,setInitCat]=useState("Tous");
+
+  // ── État global produits & catégories (chargés une seule fois depuis Odoo/mock) ──
+  const[allProducts,setAllProducts]=useState(PRODS);
+  const[categories, setCategories]=useState(CATS);
+  const[dataLoading,setDataLoading]=useState(false);
+
+  useEffect(()=>{
+    if(!USE_ODOO) return; // en mode démo, on garde les données mock
+    (async()=>{
+      setDataLoading(true);
+      try{
+        const[pRes,cRes]=await Promise.all([api.getProducts(),api.getCategories()]);
+        if(pRes.success&&pRes.data?.length) setAllProducts(pRes.data);
+        if(cRes.success&&cRes.data?.length) setCategories(cRes.data);
+      }catch(e){ console.warn("Chargement Odoo échoué, données mock utilisées",e.message); }
+      finally{ setDataLoading(false); }
+    })();
+  },[]);
+
+  const go=useCallback((target,opts={})=>{
+    if(opts.product)setProd(opts.product);
+    if(opts.cat)setInitCat(opts.cat);
+    setPage(target);
+    window.scrollTo({top:0,behavior:"smooth"});
+  },[]);
+
+  if(admin)return(
+    <CartProvider><WishProvider><ToastProvider>
+      <Admin onExit={()=>setAdmin(false)}/>
+    </ToastProvider></WishProvider></CartProvider>
+  );
+
+  return(
+    <CartProvider><WishProvider><ToastProvider>
+      <div style={{minHeight:"100vh",background:"#f8fafc"}}>
+        <Navbar go={go} setCartOpen={setCartOpen} q={q} setQ={setQ} categories={categories}/>
+        <CartDrawer open={cartOpen} onClose={()=>setCartOpen(false)} go={go}/>
+        {/* Bannière mode démo */}
+        {!USE_ODOO&&(
+          <div style={{background:"#fef3c7",borderBottom:"1px solid #fde68a",padding:"7px 16px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:11,color:"#92400e",fontWeight:600}}>
+            ⚠️ Mode démo — données simulées. Pour connecter Odoo, configurez <code style={{background:"rgba(0,0,0,.07)",padding:"1px 5px",borderRadius:4}}>window.KUMPAX_USE_ODOO=true</code> et <code style={{background:"rgba(0,0,0,.07)",padding:"1px 5px",borderRadius:4}}>window.KUMPAX_API_URL</code>
+          </div>
+        )}
+        <main className="fade-in" key={page}>
+          {page==="home"    &&<Home go={go} products={allProducts} categories={categories} loading={dataLoading}/>}
+          {page==="catalog" &&<Catalog go={go} initCat={initCat} q={q} products={allProducts} categories={categories}/>}
+          {page==="product" &&prod&&<ProductPage p={prod} go={go} allProducts={allProducts}/>}
+          {page==="checkout"&&<Checkout go={go}/>}
+          {page==="wishlist"&&<Wishlist go={go} allProducts={allProducts}/>}
+          {page==="account" &&<Account go={go}/>}
+        </main>
+        <Footer go={go}/>
+        <button onClick={()=>setAdmin(true)} title="Panneau Admin" style={{position:"fixed",bottom:20,right:20,width:42,height:42,borderRadius:"50%",background:"#1e293b",border:"none",color:"#fff",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(0,0,0,.25)",zIndex:30}}>
+          ⚙️
+        </button>
+      </div>
+    </ToastProvider></WishProvider></CartProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
