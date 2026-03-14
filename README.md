@@ -218,3 +218,5 @@ Le JSON-RPC est activé par défaut. Aucune configuration serveur supplémentair
 ---
 
 *Développé pour Kumpax Store — Architecture by Claude Sonnet 4.6*
+#   K u m p a x s t o r e  
+ 
