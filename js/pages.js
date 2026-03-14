@@ -376,7 +376,7 @@ function Checkout({ go }) {
   const finalizeOrder = async () => {
     setSubmitting(true);
     try {
-      const res = await api.createOrder({
+      const res = await window.api.createOrder({
         delivery: form,
         items: items.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
         payMethod: form.payMethod,
@@ -578,7 +578,7 @@ function Checkout({ go }) {
                 <button onClick={async () => {
                   setSubmitting(true);
                   try {
-                    const res = await api.createOrder({
+                    const res = await window.api.createOrder({
                       delivery: form,
                       items: items.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
                       payMethod: pay,

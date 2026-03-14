@@ -6,9 +6,7 @@
    En production : https://api.kumpax.sn
    ═══════════════════════════════════════════════ */
 
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_URL = window.KUMPAX_API_URL !== undefined ? window.KUMPAX_API_URL : (isLocal ? "http://localhost:3001" : "");
-const USE_ODOO = window.KUMPAX_USE_ODOO === true; // false = mode démo (données mock)
+const { API_URL, USE_ODOO } = window;
 
 const api = {
   // Récupère les produits (avec filtres optionnels)
@@ -108,3 +106,8 @@ const Skeleton = ({ w = "100%", h = 16, r = 8, mb = 0 }) => (
     backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite", marginBottom: mb
   }} />
 );
+
+// ── Exposer globalement pour Babel Standalone ──
+window.api = api;
+window.useApi = useApi;
+window.Skeleton = Skeleton;

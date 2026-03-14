@@ -5,6 +5,17 @@ const router = express.Router();
 // États Odoo autorisés (whitelist de sécurité)
 const ALLOWED_STATES = new Set(["draft", "sale", "done", "cancel"]);
 
+// Middleware d'authentification admin
+const checkAdminAuth = (req, res, next) => {
+  const token = req.headers["authorization"] || req.headers["x-admin-token"];
+  const expectedToken = process.env.ADMIN_TOKEN;
+
+  if (!expectedToken || token !== expectedToken) {
+    return res.status(401).json({ success: false, error: "Non autorisé : Token admin invalide ou manquant." });
+  }
+  next();
+};
+
 module.exports = (orderService) => {
   // POST /api/orders  → crée une commande dans Odoo
   router.post("/", async (req, res) => {
@@ -33,7 +44,7 @@ module.exports = (orderService) => {
   });
 
   // GET /api/orders?limit=&offset=&state=
-  router.get("/", async (req, res) => {
+  router.get("/", checkAdminAuth, async (req, res) => {
     try {
       const { limit = 50, offset = 0, state } = req.query;
 
@@ -56,36 +67,16 @@ module.exports = (orderService) => {
         return res.status(400).json({ success: false, error: "Numéro de téléphone invalide" });
       }
 
-      const fullPhone = phone.startsWith("+221") ? phone : `+221${phone}`;
-
-      // Trouver le client
-      const partners = await orderService.odoo.searchRead({
-        model: "res.partner",
-        domain: [["phone", "=", fullPhone]],
-        fields: ["id"],
-        limit: 1
-      });
-
-      if (!partners.length) {
-        return res.json({ success: true, data: [] });
-      }
-
-      // Récupérer ses commandes
-      const orders = await orderService.odoo.searchRead({
-        model: "sale.order",
-        domain: [["partner_id", "=", partners[0].id]],
-        fields: ["id", "name", "state", "amount_total", "date_order", "order_line"],
-        order: "date_order desc"
-      });
-
-      res.json({ success: true, data: orders.map(o => orderService._mapOrder(o)) });
+      const orders = await orderService.getCustomerOrders(phone);
+      res.json({ success: true, data: orders });
     } catch (err) {
+      console.error("[GET /orders/customer]", err.message);
       res.status(500).json({ success: false, error: err.message });
     }
   });
 
   // PATCH /api/orders/:id/status
-  router.patch("/:id/status", async (req, res) => {
+  router.patch("/:id/status", checkAdminAuth, async (req, res) => {
     try {
       const { state } = req.body;
       const orderId = parseInt(req.params.id);

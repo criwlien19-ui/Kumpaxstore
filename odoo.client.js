@@ -95,8 +95,10 @@ class OdooClient {
       );
 
       if (res.data?.error) {
-        // Si session expirée, on se ré-authentifie une seule fois (pas de récursion infinie)
-        if (res.data.error.code === 100 && !isRetry) {
+        // Session expirée (code 100 ou 300 selon Odoo)
+        const errorCode = res.data.error.code;
+        if ((errorCode === 100 || errorCode === 300) && !isRetry) {
+          console.warn(`[Odoo] Session expirée (code ${errorCode}), reconnexion...`);
           this.uid = null;
           this.sessionId = null;
           return this._rpc(endpoint, params, true); // retry unique

@@ -8,6 +8,8 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const morgan = require("morgan");
+const compression = require("compression");
 const OdooClient = require("./odoo.client");
 const { ProductService } = require("./product.service");
 const OrderService = require("./order.service");
@@ -15,6 +17,10 @@ const productRoutes = require("./products");
 const orderRoutes = require("./orders");
 
 const app = express();
+
+// ── Performance & Logging ──────────────────────────────────
+app.use(morgan("dev"));
+app.use(compression());
 
 // ── Sécurité HTTP (headers) ────────────────────────────────
 app.use(helmet());
@@ -30,8 +36,17 @@ const limiter = rateLimit({
 app.use("/api", limiter);
 
 // ── Middlewares ────────────────────────────────────────────
+const allowedOrigins = (process.env.FRONTEND_URL || "").split(",").map(o => o.trim());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "*",
+  origin: (origin, callback) => {
+    // Autorise les requêtes sans origine (comme mobile apps ou curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS: Origine non autorisée par la politique de sécurité de Kumpax."));
+    }
+  },
   methods: ["GET", "POST", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
@@ -65,6 +80,9 @@ app.get("/api/health", async (req, res) => {
 
 // ── Gestion erreur globale ─────────────────────────────────
 app.use((err, req, res, next) => {
+  if (err.message.includes("CORS")) {
+    return res.status(403).json({ success: false, error: err.message });
+  }
   console.error("[ERROR]", err.message);
   res.status(500).json({ success: false, error: "Erreur interne du serveur" });
 });
@@ -75,17 +93,29 @@ app.use((req, res) => {
 });
 
 // ── Démarrage ──────────────────────────────────────────────
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
-    console.log(`\n🚀 Kumpax API démarrée sur http://localhost:${PORT}`);
-    console.log(`📡 Odoo cible : ${process.env.ODOO_URL}`);
-    console.log(`🗄  Base Odoo : ${process.env.ODOO_DB}\n`);
-    odoo.authenticate().catch(err => console.error("⚠️  Odoo auth:", err.message));
-  });
-} else {
-  // En production / Vercel, on tente l'authentification Odoo au chargement
+const PORT = process.env.PORT || 3001;
+const server = app.listen(PORT, () => {
+  console.log(`\n🚀 Kumpax API démarrée sur http://localhost:${PORT}`);
+  console.log(`📡 Odoo cible : ${process.env.ODOO_URL}`);
+  console.log(`🗄  Base Odoo : ${process.env.ODOO_DB}\n`);
   odoo.authenticate().catch(err => console.error("⚠️  Odoo auth:", err.message));
-}
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`\n❌ ERREUR: Le port ${PORT} est déjà utilisé par un autre processus.`);
+    console.error(`💡 Solution: Exécutez 'npx kill-port ${PORT}' ou changez le PORT dans .env\n`);
+    process.exit(1);
+  }
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("SIGTERM reçu. Fermeture du serveur...");
+  server.close(() => {
+    console.log("Serveur fermé.");
+    process.exit(0);
+  });
+});
 
 module.exports = app;

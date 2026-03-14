@@ -5,16 +5,22 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "nodemon index.js",
+    "dev:web": "npx serve . -p 3000",
+    "start:prod": "set NODE_ENV=production && node index.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.99.1",
     "axios": "^1.6.0",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
+    "dompurify": "^3.3.3",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.3.1",
-    "helmet": "^8.1.0"
+    "helmet": "^8.1.0",
+    "jsdom": "^28.1.0",
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

@@ -19,15 +19,22 @@ function App() {
   const [dataLoading, setDataLoading] = useState(false);
 
   useEffect(() => {
-    if (!USE_ODOO) return; // en mode démo, on garde les données mock
+    if (!window.USE_ODOO) return; // en mode démo, on garde les données mock
     (async () => {
       setDataLoading(true);
       try {
-        const [pRes, cRes] = await Promise.all([api.getProducts(), api.getCategories()]);
-        if (pRes.success && pRes.data?.length) setAllProducts(pRes.data);
-        if (cRes.success && cRes.data?.length) setCategories(cRes.data);
-      } catch (e) { console.warn("Chargement Odoo échoué, données mock utilisées", e.message); }
-      finally { setDataLoading(false); }
+        const [pRes, cRes] = await Promise.all([window.api.getProducts(), window.api.getCategories()]);
+        if (pRes.success) {
+          setAllProducts(pRes.data && pRes.data.length ? pRes.data : []);
+        }
+        if (cRes.success) {
+          setCategories(cRes.data && cRes.data.length ? cRes.data : []);
+        }
+      } catch (e) {
+        console.warn("Chargement Odoo échoué", e.message);
+      } finally {
+        setDataLoading(false);
+      }
     })();
   }, []);
 
@@ -38,7 +45,7 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  if (admin) return <Admin onExit={() => setAdmin(false)} url={API_URL} />;
+  if (admin) return <Admin onExit={() => setAdmin(false)} url={window.API_URL} />;
 
   // Si on est sur la page "admin_login", on affiche un petit formulaire
   if (page === "admin_login") {
@@ -71,7 +78,7 @@ function App() {
         <Navbar go={go} setCartOpen={setCartOpen} q={q} setQ={setQ} categories={categories} />
         <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} go={go} />
         {/* Bannière mode démo */}
-        {!USE_ODOO && (
+        {!window.USE_ODOO && (
           <div style={{ background: "#fef3c7", borderBottom: "1px solid #fde68a", padding: "7px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 11, color: "#92400e", fontWeight: 600 }}>
             ⚠️ Mode démo — données simulées. Pour connecter Odoo, configurez <code style={{ background: "rgba(0,0,0,.07)", padding: "1px 5px", borderRadius: 4 }}>window.KUMPAX_USE_ODOO=true</code> et <code style={{ background: "rgba(0,0,0,.07)", padding: "1px 5px", borderRadius: 4 }}>window.KUMPAX_API_URL</code>
           </div>

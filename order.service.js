@@ -1,17 +1,8 @@
-/**
- * ============================================================
- * KUMPAX — Service Commandes (Odoo sale.order)
- * ============================================================
- * Crée et gère les commandes de vente dans Odoo.
- *
- * Flux de création :
- *   1. Trouver ou créer le client (res.partner)
- *   2. Créer la commande (sale.order) en brouillon
- *   3. Ajouter les lignes (sale.order.line)
- *   4. Confirmer la commande (action_confirm)
- *   5. Retourner le numéro de commande Odoo
- * ============================================================
- */
+const createDOMPurify = require("dompurify");
+const { JSDOM } = require("jsdom");
+
+const window = new JSDOM("").window;
+const DOMPurify = createDOMPurify(window);
 
 class OrderService {
   constructor(odooClient) {
@@ -78,11 +69,12 @@ class OrderService {
     const partnerId = await this.findOrCreatePartner(delivery);
 
     // 2. Préparer les notes de livraison
+    const cleanNote = note ? DOMPurify.sanitize(note, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : "";
     const deliveryNote = [
       `Adresse: ${delivery.adresse}`,
       `Téléphone: +221 ${delivery.telephone}`,
       `Paiement: ${payMethod === "cod" ? "À la livraison (Cash)" : "Mobile Money (Wave/Orange Money)"}`,
-      note ? `Note: ${note}` : "",
+      cleanNote ? `Note: ${cleanNote}` : "",
     ].filter(Boolean).join("\n");
 
     // 3. Créer l'en-tête de commande (sale.order)
@@ -93,10 +85,6 @@ class OrderService {
         partner_invoice_id: partnerId,
         partner_shipping_id: partnerId,
         note: deliveryNote,
-        // Tag paiement pour identifier les COD dans Odoo
-        tag_ids: payMethod === "cod"
-          ? await this._getOrCreateTagId("COD - Paiement livraison")
-          : await this._getOrCreateTagId("Wave/Orange Money"),
       },
     });
 
@@ -147,13 +135,17 @@ class OrderService {
         limit: 1,
       });
 
-      const productProductId = variants.length ? variants[0].id : null;
+      if (!variants.length) {
+        throw new Error(`Aucune variante (product.product) trouvée pour le template ID ${item.id} (${item.name})`);
+      }
+
+      const productProductId = variants[0].id;
 
       await this.odoo.create({
         model: "sale.order.line",
         values: {
           order_id: saleOrderId,
-          product_id: productProductId || item.id,
+          product_id: productProductId,
           product_uom_qty: item.qty,
           price_unit: item.price,
           name: item.name,
@@ -184,7 +176,34 @@ class OrderService {
       order: "date_order desc",
     });
 
-    return orders.map(this._mapOrder);
+    return orders.map(OrderService.mapOrder);
+  }
+
+  /**
+   * Récupère les commandes d'un client par son téléphone
+   */
+  async getCustomerOrders(phone) {
+    const fullPhone = phone.startsWith("+221") ? phone : `+221${phone}`;
+
+    // 1. Trouver le client
+    const partners = await this.odoo.searchRead({
+      model: "res.partner",
+      domain: [["phone", "=", fullPhone]],
+      fields: ["id"],
+      limit: 1
+    });
+
+    if (!partners.length) return [];
+
+    // 2. Récupérer ses commandes
+    const orders = await this.odoo.searchRead({
+      model: "sale.order",
+      domain: [["partner_id", "=", partners[0].id]],
+      fields: ["id", "name", "state", "amount_total", "date_order", "order_line"],
+      order: "date_order desc"
+    });
+
+    return orders.map(OrderService.mapOrder);
   }
 
   /**
@@ -208,7 +227,7 @@ class OrderService {
 
   // ─── Helpers ──────────────────────────────────────────────
 
-  _mapOrder(o) {
+  static mapOrder(o) {
     const stateLabels = {
       draft: "Brouillon",
       sent: "Envoyée",
@@ -225,29 +244,6 @@ class OrderService {
       date: o.date_order ? o.date_order.split(" ")[0] : "",
       items: o.order_line?.length || 0,
     };
-  }
-
-  /**
-   * Trouve ou crée un tag crm.tag dans Odoo
-   */
-  async _getOrCreateTagId(tagName) {
-    try {
-      const existing = await this.odoo.searchRead({
-        model: "crm.tag",
-        domain: [["name", "=", tagName]],
-        fields: ["id"],
-        limit: 1,
-      });
-      if (existing.length) return [existing[0].id];
-
-      const newId = await this.odoo.create({
-        model: "crm.tag",
-        values: { name: tagName },
-      });
-      return [newId];
-    } catch {
-      return []; // Tags non bloquants si crm non installé
-    }
   }
 }
 

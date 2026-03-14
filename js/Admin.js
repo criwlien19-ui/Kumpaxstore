@@ -19,7 +19,7 @@ function Admin({ onExit }) {
     let mounted = true;
     (async () => {
       try {
-        const h = await api.healthCheck();
+        const h = await window.api.healthCheck();
         if (mounted) setOdooStatus(h.status === "ok" ? "ok" : "error");
       } catch {
         if (mounted) setOdooStatus("error");
@@ -32,7 +32,7 @@ function Admin({ onExit }) {
   const loadProducts = useCallback(async () => {
     setLoadingProds(true);
     try {
-      const res = await api.getProducts();
+      const res = await window.api.getProducts();
       if (res.success && res.data) setProds(res.data);
       else push("Impossible de charger les produits Odoo", "warn");
     } catch (e) { push("Erreur produits: " + e.message, "error"); }
@@ -43,7 +43,7 @@ function Admin({ onExit }) {
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
     try {
-      const res = await api.getOrders();
+      const res = await window.api.getOrders();
       if (res.success && res.data) setOrders(res.data);
       else push("Impossible de charger les commandes Odoo", "warn");
     } catch (e) { push("Erreur commandes: " + e.message, "error"); }
@@ -56,7 +56,7 @@ function Admin({ onExit }) {
   const changeOrderStatus = async (orderId, odooId, newState) => {
     const statusMap = { "En attente": "draft", "En transit": "sale", "Livré": "done", "Annulé": "cancel" };
     try {
-      await api.updateOrderStatus(odooId, statusMap[newState] || newState);
+      await window.api.updateOrderStatus(odooId, statusMap[newState] || newState);
       setOrders(or => or.map(x => (x.id === orderId || x.odooId === odooId) ? { ...x, status: newState } : x));
       push(`Commande mise à jour → ${newState}`);
     } catch (e) {
