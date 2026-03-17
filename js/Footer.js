@@ -19,8 +19,8 @@ function Footer({ go }) {
           </div>
           {[
             { t: "Boutique", items: ["Smartphones", "Vêtements", "Électroménager", "TV & Audio"] },
-            { t: "Service",  items: ["À propos", "Contact", "FAQ", "Retours"] },
-            { t: "Contact",  items: ["+221 77 000 00 00", "support@kumpax.sn", "Dakar, Sénégal", "Lun–Sam 8h–20h"] }
+            { t: "Service", items: ["À propos", "Contact", "FAQ", "Retours"] },
+            { t: "Contact", items: ["+221 78 384 91 97", "kumpax@kumpax.sn", "Dakar, Sénégal", "Lun–Sam 8h–20h"] }
           ].map((col, i) => (
             <div key={i}>
               <p style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: .1, color: "#475569", marginBottom: 10 }}>{col.t}</p>
@@ -31,7 +31,7 @@ function Footer({ go }) {
           ))}
         </div>
         <div style={{ borderTop: "1px solid rgba(255,255,255,.08)", paddingTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-          <p style={{ fontSize: 10, color: "#475569" }}>© 2024 Kumpax Store. Tous droits réservés. 🇸🇳</p>
+          <p style={{ fontSize: 10, color: "#475569" }}>© 2026 Kumpax Store. Tous droits réservés. 🇸🇳</p>
           <div style={{ display: "flex", gap: 6 }}>
             {["Wave", "Orange Money", "Free Money", "Cash"].map(m => <span key={m} style={{ fontSize: 9, background: "rgba(255,255,255,.08)", padding: "3px 8px", borderRadius: 99, color: "#64748b" }}>{m}</span>)}
           </div>

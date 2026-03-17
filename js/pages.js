@@ -62,7 +62,7 @@ function Home({ go, products = PRODS, categories = CATS, loading = false }) {
       <div style={{ background: "#fff", borderBottom: "1px solid #f1f5f9" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "12px 16px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 8 }}>
-            {[["🚚", "Livraison 24-48h", "À Dakar et régions"], ["🔒", "Paiement Sécurisé", "Wave & Orange Money"], ["🔄", "Retour Facile", "7 jours garantis"], ["📞", "Support 7j/7", "+221 77 000 00 00"]].map(([ic, t, s], i) => (
+            {[["🚚", "Livraison 24-48h", "À Dakar et régions"], ["🔒", "Paiement Sécurisé", "Wave & Orange Money"], ["🔄", "Retour Facile", "7 jours garantis"], ["📞", "Support 7j/7", "+221 78 384 91 97"]].map(([ic, t, s], i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 12, cursor: "default" }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{ic}</div>
                 <div><p style={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>{t}</p><p style={{ fontSize: 10, color: "#94a3b8" }}>{s}</p></div>
