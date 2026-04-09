@@ -1,88 +1,126 @@
+// Standard React hooks from global scope
+const { useState, useEffect, useCallback, useMemo } = React;
+// Use global fmt if defined, otherwise define fallback
+const fmt = window.fmt || (p => (p||0).toLocaleString('fr-FR') + ' FCFA');
+// Use global useToast from context
+const useToast = window.useToast || (() => ({ push: console.log }));
+
 /* ═══════════════════════════════════════════════
-   KUMPAX STORE — Admin Panel
+   KUMPAX STORE — Admin Panel (JWT + Odoo)
    ═══════════════════════════════════════════════ */
 
 function Admin({ onExit }) {
-  const [tab, setTab] = useState("dash");
-  const [orders, setOrders] = useState(INIT_ORDERS);
-  const [prods, setProds] = useState(PRODS);
-  const [showAdd, setShowAdd] = useState(false);
-  const [np, setNp] = useState({ name: "", cat: "Smartphones", price: "", orig: "", stock: "", desc: "" });
-  const [npErr, setNpErr] = useState({});
-  const [odooStatus, setOdooStatus] = useState("checking");
-  const [loadingProds, setLoadingProds] = useState(false);
-  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [auth, setAuth] = useState(!!sessionStorage.getItem("admin_token"));
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const { push } = useToast();
 
-  // Vérification connexion Odoo au démarrage
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const h = await window.api.healthCheck();
-        if (mounted) setOdooStatus(h.status === "ok" ? "ok" : "error");
-      } catch {
-        if (mounted) setOdooStatus("error");
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
+    if (!username || !password) return push("Veuillez remplir tous les champs", "warn");
+    
+    setLoading(true);
+    try {
+      const res = await window.api.adminLogin(username, password);
+      if (res.success) {
+        setAuth(true);
+        push("Bienvenue, " + res.username);
+      } else {
+        push(res.error || "Identifiants incorrects", "error");
       }
-    })();
-    return () => { mounted = false; };
-  }, []);
-
-  // Chargement produits depuis Odoo
-  const loadProducts = useCallback(async () => {
-    setLoadingProds(true);
-    try {
-      const res = await window.api.getProducts();
-      if (res.success && res.data) setProds(res.data);
-      else push("Impossible de charger les produits Odoo", "warn");
-    } catch (e) { push("Erreur produits: " + e.message, "error"); }
-    finally { setLoadingProds(false); }
-  }, []);
-
-  // Chargement commandes depuis Odoo
-  const loadOrders = useCallback(async () => {
-    setLoadingOrders(true);
-    try {
-      const res = await window.api.getOrders();
-      if (res.success && res.data) setOrders(res.data);
-      else push("Impossible de charger les commandes Odoo", "warn");
-    } catch (e) { push("Erreur commandes: " + e.message, "error"); }
-    finally { setLoadingOrders(false); }
-  }, []);
-
-  useEffect(() => { loadProducts(); loadOrders(); }, []);
-
-  // Changement statut commande via Odoo
-  const changeOrderStatus = async (orderId, odooId, newState) => {
-    const statusMap = { "En attente": "draft", "En transit": "sale", "Livré": "done", "Annulé": "cancel" };
-    try {
-      await window.api.updateOrderStatus(odooId, statusMap[newState] || newState);
-      setOrders(or => or.map(x => (x.id === orderId || x.odooId === odooId) ? { ...x, status: newState } : x));
-      push(`Commande mise à jour → ${newState}`);
-    } catch (e) {
-      setOrders(or => or.map(x => x.id === orderId ? { ...x, status: newState } : x));
-      push(`Statut: ${newState}`);
+    } catch (err) {
+      push("Impossible de se connecter au serveur", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const stats = [
-    { l: "Chiffre d'affaires", v: fmt(orders.filter(o => o.status === "Livrée" || o.status === "Confirmée").reduce((s, o) => s + (o.total || 0), 0) || 0), ch: "+12%", bg: "#eff6ff", c: BLUE, ic: "📊" },
-    { l: "Commandes", v: orders.length, ch: "+8%", bg: "#f0fdf4", c: "#059669", ic: "🛍" },
-    { l: "Produits actifs", v: prods.length, ch: "+3", bg: "#fffbeb", c: "#d97706", ic: "📦" },
-    { l: "Clients", v: new Set(orders.map(o => o.customer)).size || 0, ch: "+24", bg: "#f5f3ff", c: "#7c3aed", ic: "👥" },
-  ];
-  const TABS = { dash: "Tableau de bord", products: "Produits", orders: "Commandes", customers: "Clients", analytics: "Statistiques", settings: "Paramètres" };
+  if (!auth) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
+        <div style={{ background: "#fff", padding: 40, borderRadius: 24, boxShadow: "0 10px 25px -5px rgba(0,0,0,.05)", width: "100%", maxWidth: 360, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 20 }}>🛡️</div>
+          <h1 style={{ fontSize: 20, fontWeight: 900, marginBottom: 24, letterSpacing: "-0.5px" }}>Kumpax Admin</h1>
+          <form onSubmit={handleLogin}>
+            <input 
+              type="text" 
+              placeholder="Nom d'utilisateur" 
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              style={{ width: "100%", padding: 16, borderRadius: 12, border: "2px solid #e2e8f0", fontSize: 14, outline: "none", marginBottom: 16 }}
+              autoFocus
+            />
+            <input
+              type="password"
+              placeholder="Mot de passe"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              style={{ width: "100%", padding: 16, borderRadius: 12, border: "2px solid #e2e8f0", fontSize: 14, outline: "none", marginBottom: 16 }}
+            />
+            <button 
+              type="submit" 
+              disabled={loading}
+              style={{ width: "100%", padding: 16, borderRadius: 12, border: "none", background: loading ? "#94a3b8" : "linear-gradient(135deg, #1E40AF, #3B82F6)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer" }}
+            >
+              {loading ? "Connexion..." : "Se connecter"}
+            </button>
+          </form>
+          <p style={{ color: "#64748b", fontSize: 12, cursor: "pointer", marginTop: 24 }} onClick={onExit}>← Retour au site</p>
+        </div>
+      </div>
+    );
+  }
 
-  const saveProduct = () => {
-    const e = {};
-    if (!np.name.trim()) e.name = "Requis";
-    if (!np.price || isNaN(+np.price) || +np.price <= 0) e.price = "Prix invalide";
-    setNpErr(e);
-    if (Object.keys(e).length) { push("Corriger les erreurs", "error"); return; }
-    setProds(p => [{ id: Date.now(), name: np.name, cat: np.cat, price: +np.price, orig: np.orig ? +np.orig : null, stock: +np.stock || 0, rating: 0, rev: 0, img: PLACEHOLDER, badge: "Nouveau", desc: np.desc, specs: [] }, ...p]);
-    setNp({ name: "", cat: "Smartphones", price: "", orig: "", stock: "", desc: "" });
-    setNpErr({}); setShowAdd(false); push("Produit ajouté !");
+  return <AdminApp onExit={() => { window.api.adminLogout(); setAuth(false); onExit(); }} />;
+}
+
+// ─── Application Admin Principale ──────────────────────────────
+function AdminApp({ onExit }) {
+  const [tab, setTab] = useState("dash");
+  const { push } = useToast();
+
+  const [stats, setStats] = useState(null);
+  const [chart, setChart] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  
+  const [odooStatus, setOdooStatus] = useState("checking");
+
+  const loadDashboard = async () => {
+    try {
+      const [sRes, cRes] = await Promise.all([window.api.adminGetStats(), window.api.adminGetSalesChart(14)]);
+      if (sRes.success) setStats(sRes.data);
+      if (cRes.success) setChart(cRes.data);
+      setOdooStatus("ok");
+    } catch { setOdooStatus("error"); }
   };
+
+  const loadProducts = async () => {
+    const r = await window.api.adminGetProducts();
+    if (r.success) setProducts(r.data);
+  };
+
+  const loadOrders = async () => {
+    const r = await window.api.adminGetOrders();
+    if (r.success) setOrders(r.data);
+  };
+
+  const loadCustomers = async () => {
+    const r = await window.api.adminGetCustomers();
+    if (r.success) setCustomers(r.data);
+  };
+
+  useEffect(() => {
+    if (tab === "dash") loadDashboard();
+    else if (tab === "products") loadProducts();
+    else if (tab === "orders") loadOrders();
+    else if (tab === "customers") loadCustomers();
+  }, [tab]);
+
+  const TABS = { dash: "Tableau de bord", products: "Produits & Stocks", orders: "Commandes", customers: "Clients" };
+  const grad = "linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)";
 
   const NavBtn = ({ id, ic, label }) => (
     <button onClick={() => setTab(id)} style={{
@@ -95,22 +133,20 @@ function Admin({ onExit }) {
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f8fafc", overflow: "hidden", fontFamily: "'Sora',sans-serif" }}>
       {/* Sidebar */}
-      <aside style={{ width: 210, background: "#fff", borderRight: "1px solid #f1f5f9", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+      <aside style={{ width: 220, background: "#fff", borderRight: "1px solid #f1f5f9", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "16px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: grad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🛍</div>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: grad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🛡️</div>
           <div><p style={{ fontWeight: 900, fontSize: 11, color: "#0f172a" }}>Kumpax Store</p><p style={{ fontSize: 10, color: "#94a3b8" }}>Administration</p></div>
         </div>
         <nav style={{ flex: 1, padding: 12 }}>
           <NavBtn id="dash" ic="📊" label="Tableau de bord" />
-          <NavBtn id="products" ic="📦" label="Produits" />
+          <NavBtn id="products" ic="📦" label="Produits & Stocks" />
           <NavBtn id="orders" ic="🛍" label="Commandes" />
           <NavBtn id="customers" ic="👥" label="Clients" />
-          <NavBtn id="analytics" ic="📈" label="Statistiques" />
         </nav>
         <div style={{ padding: 12, borderTop: "1px solid #f1f5f9" }}>
-          <NavBtn id="settings" ic="⚙️" label="Paramètres" />
-          <button onClick={onExit} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 10, border: "none", background: "none", color: "#ef4444", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
-            🚪 Retour boutique
+          <button onClick={onExit} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 10, border: "none", background: "#fef2f2", color: "#ef4444", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            🚪 Déconnexion
           </button>
         </div>
       </aside>
@@ -120,7 +156,7 @@ function Admin({ onExit }) {
         <div style={{ background: "#fff", borderBottom: "1px solid #f1f5f9", padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10 }}>
           <div>
             <h1 style={{ fontWeight: 900, fontSize: 15, color: "#0f172a" }}>{TABS[tab]}</h1>
-            <p style={{ fontSize: 10, color: "#94a3b8" }}>Bonjour, Administrateur 👋</p>
+            <p style={{ fontSize: 10, color: "#94a3b8" }}>Données synchronisées avec Odoo</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
@@ -129,241 +165,273 @@ function Admin({ onExit }) {
               color: odooStatus === "ok" ? "#047857" : odooStatus === "error" ? "#dc2626" : "#b45309"
             }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
-              {odooStatus === "ok" ? "🔗 Odoo connecté" : odooStatus === "error" ? "⚠ Odoo hors ligne" : "⏳ Vérification..."}
-            </div>
-            <div style={{ position: "relative", cursor: "pointer", fontSize: 18 }}>🔔<span style={{ position: "absolute", top: 0, right: 0, width: 7, height: 7, borderRadius: "50%", background: "#ef4444", border: "1px solid #fff" }} /></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#eff6ff", borderRadius: 10, padding: "6px 10px" }}>
-              <div style={{ width: 24, height: 24, borderRadius: "50%", background: BLUE, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 900 }}>A</div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#334155" }}>Admin</span>
+              {odooStatus === "ok" ? "🔗 Odoo Live" : odooStatus === "error" ? "⚠ Odoo Hors Ligne" : "⏳ Connexion..."}
             </div>
           </div>
         </div>
 
         <div style={{ padding: 24, flex: 1 }}>
-          {/* Dashboard */}
-          {tab === "dash" && (
-            <div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
-                {stats.map((s, i) => (
-                  <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 4px rgba(0,0,0,.05)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{s.ic}</div>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: "#059669", background: "#ecfdf5", padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 2 }}>↑{s.ch}</span>
-                    </div>
-                    <p style={{ fontSize: 17, fontWeight: 900, color: "#0f172a" }}>{s.v}</p>
-                    <p style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{s.l}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", marginBottom: 16 }}>
-                <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <p style={{ fontWeight: 800, fontSize: 13 }}>Commandes récentes</p>
-                  <button onClick={() => setTab("orders")} style={{ fontSize: 11, fontWeight: 700, color: BLUE, border: "none", background: "none", cursor: "pointer" }}>Voir toutes</button>
-                </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-                  <thead><tr style={{ background: "#f8fafc" }}>{["Réf.", "Client", "Ville", "Total", "Statut"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", fontSize: 10, letterSpacing: .05 }}>{h}</th>)}</tr></thead>
-                  <tbody>
-                    {orders.map(o => (
-                      <tr key={o.id} style={{ borderTop: "1px solid #f8fafc" }}>
-                        <td style={{ padding: "10px 16px", fontWeight: 800, color: "#334155" }}>{o.id}</td>
-                        <td style={{ padding: "10px 16px", fontWeight: 600 }}>{o.customer}</td>
-                        <td style={{ padding: "10px 16px", color: "#94a3b8" }}>{o.city}</td>
-                        <td style={{ padding: "10px 16px", fontWeight: 800, color: BLUE }}>{fmt(o.total)}</td>
-                        <td style={{ padding: "10px 16px" }}><StatusBadge s={o.status} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", padding: 20 }}>
-                <p style={{ fontWeight: 800, fontSize: 13, marginBottom: 14 }}>Top Produits</p>
-                {prods.slice(0, 5).map((p, i) => (
-                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 900, color: "#94a3b8", width: 16 }}>#{i + 1}</span>
-                    <SafeImg src={p.img} alt={p.name} style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                      <p style={{ fontSize: 10, color: "#94a3b8" }}>{p.rev} ventes · {p.cat}</p>
-                    </div>
-                    <p style={{ fontSize: 11, fontWeight: 800, color: BLUE, flexShrink: 0 }}>{fmt(p.price)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Products */}
-          {tab === "products" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <p style={{ fontSize: 11, color: "#94a3b8" }}>{prods.length} produit(s)</p>
-                <button onClick={() => setShowAdd(!showAdd)} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: showAdd ? "#f1f5f9" : grad, color: showAdd ? "#475569" : "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
-                  {showAdd ? "✕ Annuler" : "+ Nouveau produit"}
-                </button>
-              </div>
-              {showAdd && (
-                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", padding: 20, marginBottom: 16 }}>
-                  <p style={{ fontWeight: 800, fontSize: 13, marginBottom: 14 }}>Nouveau produit</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-                    {[["name", "Nom *", "Ex: Samsung A54"], ["price", "Prix FCFA *", "250000"], ["orig", "Prix barré", "280000"], ["stock", "Stock", "50"]].map(([k, l, ph]) => (
-                      <div key={k}>
-                        <label style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase" }}>{l}</label>
-                        <input value={np[k]} onChange={e => { setNp(p => ({ ...p, [k]: e.target.value })); setNpErr(er => ({ ...er, [k]: "" })); }} placeholder={ph}
-                          style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${npErr[k] ? "#fca5a5" : "#e2e8f0"}`, fontSize: 12, fontFamily: "'Sora',sans-serif" }} />
-                        {npErr[k] && <p style={{ fontSize: 10, color: "#ef4444", marginTop: 2 }}>{npErr[k]}</p>}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase" }}>Catégorie</label>
-                    <select value={np.cat} onChange={e => setNp(p => ({ ...p, cat: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12, fontFamily: "'Sora',sans-serif", background: "#fff" }}>
-                      {CATS.map(c => <option key={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={{ display: "block", fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase" }}>Description</label>
-                    <textarea value={np.desc} onChange={e => setNp(p => ({ ...p, desc: e.target.value }))} rows={2} placeholder="Description..." style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12, fontFamily: "'Sora',sans-serif", resize: "none" }} />
-                  </div>
-                  <div style={{ border: "2px dashed #e2e8f0", borderRadius: 12, padding: "16px", textAlign: "center", color: "#94a3b8", fontSize: 11, marginBottom: 14, cursor: "pointer" }}>
-                    📤 Cliquer pour ajouter une image
-                  </div>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => { setShowAdd(false); setNpErr({}); }} style={{ padding: "8px 16px", borderRadius: 10, border: "1px solid #e2e8f0", background: "none", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Annuler</button>
-                    <button onClick={saveProduct} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: grad, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>Enregistrer le produit</button>
-                  </div>
-                </div>
-              )}
-              <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-                    <thead><tr style={{ background: "#f8fafc" }}>{["Produit", "Catégorie", "Prix", "Stock", "Note", "Actions"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", fontSize: 10 }}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {prods.map(p => (
-                        <tr key={p.id} style={{ borderTop: "1px solid #f8fafc" }}>
-                          <td style={{ padding: "10px 14px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <SafeImg src={p.img} alt="" style={{ width: 30, height: 30, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-                              <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{p.name}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: "10px 14px", color: "#94a3b8" }}>{p.cat}</td>
-                          <td style={{ padding: "10px 14px", fontWeight: 800, color: BLUE }}>{fmt(p.price)}</td>
-                          <td style={{ padding: "10px 14px" }}>
-                            <span style={{
-                              padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700,
-                              background: (p.stock || 0) > 10 ? "#d1fae5" : (p.stock || 0) > 0 ? "#fef3c7" : "#fee2e2",
-                              color: (p.stock || 0) > 10 ? "#047857" : (p.stock || 0) > 0 ? "#b45309" : "#dc2626"
-                            }}>
-                              {p.stock || 0} unités
-                            </span>
-                          </td>
-                          <td style={{ padding: "10px 14px", fontWeight: 700 }}>{p.rating || "—"}</td>
-                          <td style={{ padding: "10px 14px" }}>
-                            <div style={{ display: "flex", gap: 4 }}>
-                              <button style={{ width: 26, height: 26, borderRadius: 8, border: "none", background: "#eff6ff", cursor: "pointer", fontSize: 12 }}>👁</button>
-                              <button style={{ width: 26, height: 26, borderRadius: 8, border: "none", background: "#f8fafc", cursor: "pointer", fontSize: 12 }}>✏️</button>
-                              <button onClick={() => {
-                                if (window.confirm(`Supprimer « ${p.name} » ? Cette action est irréversible.`)) { setProds(pr => pr.filter(x => x.id !== p.id)); push("Produit supprimé", "warn"); }
-                              }} style={{ width: 26, height: 26, borderRadius: 8, border: "none", background: "#fef2f2", cursor: "pointer", fontSize: 12 }}>🗑</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Orders */}
-          {tab === "orders" && (
-            <div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
-                {[["Brouillon", "#f1f5f9", "#475569"], ["Confirmée", "#dbeafe", "#1d4ed8"], ["Livrée", "#d1fae5", "#047857"], ["Annulée", "#fee2e2", "#dc2626"]].map(([s, bg, c]) => (
-                  <div key={s} style={{ background: bg, borderRadius: 12, padding: "10px 14px", textAlign: "center" }}>
-                    <p style={{ fontSize: 20, fontWeight: 900, color: c }}>{orders.filter(o => o.status === s).length}</p>
-                    <p style={{ fontSize: 10, fontWeight: 600, color: c }}>{s}</p>
-                  </div>
-                ))}
-              </div>
-              <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-                    <thead><tr style={{ background: "#f8fafc" }}>{["Réf.", "Client", "Date", "Ville", "Articles", "Total", "Statut", "Changer"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", fontSize: 10 }}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {orders.map(o => (
-                        <tr key={o.id} style={{ borderTop: "1px solid #f8fafc" }}>
-                          <td style={{ padding: "10px 14px", fontWeight: 800, color: "#334155" }}>{o.id}</td>
-                          <td style={{ padding: "10px 14px", fontWeight: 600 }}>{o.customer}</td>
-                          <td style={{ padding: "10px 14px", color: "#94a3b8" }}>{o.date}</td>
-                          <td style={{ padding: "10px 14px", color: "#94a3b8" }}>{o.city}</td>
-                          <td style={{ padding: "10px 14px", color: "#94a3b8" }}>{o.items}</td>
-                          <td style={{ padding: "10px 14px", fontWeight: 800, color: BLUE }}>{fmt(o.total)}</td>
-                          <td style={{ padding: "10px 14px" }}><StatusBadge s={o.status} /></td>
-                          <td style={{ padding: "10px 14px" }}>
-                            <select value={o.status} onChange={e => { changeOrderStatus(o.id, o.odooId || o.id, e.target.value); }}
-                              style={{ padding: "5px 8px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 11, fontFamily: "'Sora',sans-serif", background: "#fff", cursor: "pointer" }}>
-                              {["Brouillon", "Confirmée", "Livrée", "Annulée"].map(s => <option key={s}>{s}</option>)}
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Customers */}
-          {tab === "customers" && (
-            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}>
-              <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9" }}>
-                <p style={{ fontWeight: 800, fontSize: 13 }}>Base Clients ({new Set(orders.map(o => o.customer)).size})</p>
-              </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-                  <thead><tr style={{ background: "#f8fafc" }}>{["Client", "Ville", "Dernière commande", "Total Dépensé", "Commandes"].map(h => <th key={h} style={{ textAlign: "left", padding: "10px 14px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", fontSize: 10 }}>{h}</th>)}</tr></thead>
-                  <tbody>
-                    {Object.values(orders.reduce((acc, o) => {
-                      if (!acc[o.customer]) acc[o.customer] = { name: o.customer, city: o.city, total: 0, count: 0, last: o.date };
-                      acc[o.customer].total += o.total;
-                      acc[o.customer].count += 1;
-                      if (new Date(o.date) > new Date(acc[o.customer].last)) acc[o.customer].last = o.date;
-                      return acc;
-                    }, {})).map(c => (
-                      <tr key={c.name} style={{ borderTop: "1px solid #f8fafc" }}>
-                        <td style={{ padding: "10px 14px", fontWeight: 800, color: "#334155" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#eff6ff", color: BLUE, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900 }}>{c.name.charAt(0)}</div>
-                            {c.name}
-                          </div>
-                        </td>
-                        <td style={{ padding: "10px 14px", color: "#94a3b8" }}>{c.city || "—"}</td>
-                        <td style={{ padding: "10px 14px", color: "#94a3b8" }}>{c.last || "—"}</td>
-                        <td style={{ padding: "10px 14px", fontWeight: 800, color: BLUE }}>{fmt(c.total)}</td>
-                        <td style={{ padding: "10px 14px" }}><span style={{ padding: "3px 8px", background: "#f1f5f9", borderRadius: 99, fontWeight: 700 }}>{c.count}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Analytics (En développement visuel avancé) */}
-          {["analytics", "settings"].includes(tab) && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 200, color: "#94a3b8", gap: 8, textAlign: "center" }}>
-              <span style={{ fontSize: 40, opacity: .4 }}>📊</span>
-              <p style={{ fontWeight: 700, color: "#64748b", fontSize: 13 }}>Module en développement</p>
-              <p style={{ fontSize: 11 }}>Les graphiques avancés arriveront dans la version 2.0 !</p>
-            </div>
-          )}
+          {tab === "dash" && stats && <AdminDashboard stats={stats} chart={chart} />}
+          {tab === "products" && <AdminProducts products={products} refresh={loadProducts} />}
+          {tab === "orders" && <AdminOrders orders={orders} refresh={loadOrders} />}
+          {tab === "customers" && <AdminCustomers customers={customers} />}
         </div>
       </main>
+    </div>
+  );
+}
+
+// ─── 1. Tableau de Bord ──────────────────────────────────────────
+function AdminDashboard({ stats, chart }) {
+  const Kpis = [
+    { l: "Chiffre d'affaires", v: fmt(stats.revenue), ch: stats.revGrowth ? `+${stats.revGrowth}% MoM` : null, bg: "#eff6ff", c: "#1d4ed8", ic: "📊" },
+    { l: "Commandes confirmées", v: stats.ordersConfirmed, ch: `${stats.ordersThisMonth} ce mois`, bg: "#f0fdf4", c: "#059669", ic: "🛍" },
+    { l: "Produits en ligne", v: stats.productCount, bg: "#fffbeb", c: "#d97706", ic: "📦" },
+    { l: "Clients (Odoo)", v: stats.customerCount, bg: "#f5f3ff", c: "#7c3aed", ic: "👥" },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
+        {Kpis.map((s, i) => (
+          <div key={i} style={{ background: "#fff", borderRadius: 16, padding: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 4px rgba(0,0,0,.05)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{s.ic}</div>
+              {s.ch && <span style={{ fontSize: 9, fontWeight: 800, color: s.c, background: s.bg, padding: "3px 8px", borderRadius: 99 }}>{s.ch}</span>}
+            </div>
+            <p style={{ fontSize: 17, fontWeight: 900, color: "#0f172a" }}>{s.v}</p>
+            <p style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{s.l}</p>
+          </div>
+        ))}
+      </div>
+
+      {chart.length > 0 && (
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", padding: 20, marginBottom: 20 }}>
+          <p style={{ fontWeight: 800, fontSize: 13, marginBottom: 16 }}>Ventes des 14 derniers jours</p>
+          <SalesChart data={chart} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SalesChart({ data }) {
+  const max = Math.max(...data.map(d => d.amount), 1);
+  return (
+    <div style={{ display: "flex", height: 180, alignItems: "flex-end", gap: 6, paddingTop: 20 }}>
+      {data.map((d, i) => {
+        const height = (d.amount / max) * 100 + "%";
+        return (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, group: "true", position: "relative" }}>
+            {/* Tooltip on hover */}
+            <div style={{ opacity: 0, position: "absolute", top: -30, background: "#1e293b", color: "#fff", fontSize: 10, padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap", pointerEvents: "none", transition: "opacity .2s" }}
+                 onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                 onMouseLeave={e => e.currentTarget.style.opacity = 0}
+            >
+              {fmt(d.amount)}
+            </div>
+            <div style={{ width: "100%", background: "#e2e8f0", borderRadius: 4, height: 140, display: "flex", alignItems: "flex-end", overflow: "hidden" }}
+                 onMouseEnter={e => e.currentTarget.previousSibling.style.opacity = 1}
+                 onMouseLeave={e => e.currentTarget.previousSibling.style.opacity = 0}>
+              <div style={{ width: "100%", height, background: "linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%)", borderRadius: 4, transition: "height 0.3s" }} />
+            </div>
+            <span style={{ fontSize: 9, color: "#94a3b8", transform: "rotate(-45deg) translate(-4px, -4px)", transformOrigin: "right" }}>{d.date.slice(5)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── 2. Produits & Stocks ───────────────────────────────────────
+function AdminProducts({ products, refresh }) {
+  const { push } = useToast();
+  const [showAdd, setShowAdd] = useState(false);
+  const [cats, setCats] = useState([]);
+  
+  // Nouveau produit
+  const [form, setForm] = useState({ name: "", list_price: "", categ_id: "", stock: "" });
+
+  useEffect(() => {
+    window.api.getCategories().then(r => {
+      if (r.success) setCats(r.data);
+    });
+  }, []);
+
+  const handleCreate = async () => {
+    if (!form.name || !form.list_price) return push("Nom et Prix requis", "warn");
+    const r = await window.api.adminCreateProduct(form);
+    if (r.success) {
+      if (form.stock && +form.stock > 0) {
+        await window.api.adminUpdateStock(r.data.id, +form.stock);
+      }
+      push("Produit créé !");
+      setShowAdd(false);
+      setForm({ name: "", list_price: "", categ_id: "", stock: "" });
+      refresh();
+    } else push(r.error, "error");
+  };
+
+  const handleUpdateStock = async (id, currentQty) => {
+    const qty = prompt("Nouvelle quantité en stock :", currentQty);
+    if (qty === null || isNaN(qty)) return;
+    const r = await window.api.adminUpdateStock(id, +qty);
+    if (r.success) { push("Stock mis à jour"); refresh(); }
+    else push(r.error, "error");
+  };
+
+  const handleArchive = async (id) => {
+    if (!window.confirm("Archiver ce produit dans Odoo ?")) return;
+    const r = await window.api.adminArchiveProduct(id);
+    if (r.success) { push("Produit archivé"); refresh(); }
+    else push(r.error, "error");
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+        <p style={{ fontSize: 12, fontWeight: 700 }}>{products.length} Produits Odoo actifs</p>
+        <button onClick={() => setShowAdd(!showAdd)} style={{ background: showAdd ? "#e2e8f0" : "#1E40AF", color: showAdd ? "#000" : "#fff", border: "none", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
+          {showAdd ? "Fermer" : "+ Nouveau Article"}
+        </button>
+      </div>
+
+      {showAdd && (
+        <div style={{ background: "#fff", padding: 20, borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 20 }}>
+          <h3 style={{ fontSize: 13, marginBottom: 12 }}>Création (Synchronisé avec Odoo)</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <input placeholder="Nom du produit" value={form.name} onChange={e => setForm({...form, name: e.target.value})} style={{ padding: 10, borderRadius: 6, border: "1px solid #ccc" }} />
+            <input placeholder="Prix (FCFA)" type="number" value={form.list_price} onChange={e => setForm({...form, list_price: e.target.value})} style={{ padding: 10, borderRadius: 6, border: "1px solid #ccc" }} />
+            <select value={form.categ_id} onChange={e => setForm({...form, categ_id: e.target.value})} style={{ padding: 10, borderRadius: 6, border: "1px solid #ccc" }}>
+              <option value="">Sélectionner catégorie Odoo</option>
+              {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <input placeholder="Stock initial (Optionnel)" type="number" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} style={{ padding: 10, borderRadius: 6, border: "1px solid #ccc" }} />
+          </div>
+          <button onClick={handleCreate} style={{ marginTop: 12, background: "#059669", color: "#fff", padding: "10px 20px", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 700 }}>Créer dans Odoo</button>
+        </div>
+      )}
+
+      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+          <thead style={{ background: "#f8fafc", color: "#64748b", textTransform: "uppercase" }}>
+            <tr>
+              <th style={{ padding: 12, textAlign: "left" }}>ID</th>
+              <th style={{ padding: 12, textAlign: "left" }}>Produit</th>
+              <th style={{ padding: 12, textAlign: "left" }}>Prix</th>
+              <th style={{ padding: 12, textAlign: "left" }}>Stock</th>
+              <th style={{ padding: 12, textAlign: "right" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map(p => (
+              <tr key={p.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                <td style={{ padding: 12, color: "#94a3b8" }}>#{p.id}</td>
+                <td style={{ padding: 12, fontWeight: 600 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {p.image_1920 ? <img src={`data:image/png;base64,${p.image_1920}`} style={{ width: 24, height: 24, borderRadius: 4, objectFit: "cover" }} /> : <div style={{width: 24, height: 24, background: "#e2e8f0", borderRadius: 4}}/>}
+                    {p.name}
+                  </div>
+                </td>
+                <td style={{ padding: 12, color: "#1E40AF", fontWeight: 700 }}>{fmt(p.list_price)}</td>
+                <td style={{ padding: 12 }}>
+                  <span onClick={() => handleUpdateStock(p.id, p.qty_available)} style={{ cursor: "pointer", padding: "4px 8px", borderRadius: 99, background: p.qty_available > 0 ? "#d1fae5" : "#fee2e2", color: p.qty_available > 0 ? "#047857" : "#dc2626", fontWeight: 700 }}>
+                    {p.qty_available} ✏️
+                  </span>
+                </td>
+                <td style={{ padding: 12, textAlign: "right" }}>
+                  <button onClick={() => handleArchive(p.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer" }}>Archiver 🗑</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── 3. Commandes ───────────────────────────────────────────────
+function AdminOrders({ orders, refresh }) {
+  const { push } = useToast();
+
+  const handleStatusChange = async (id, state) => {
+    const r = await window.api.adminUpdateOrderStatus(id, state);
+    if (r.success) { push("Statut mis à jour"); refresh(); }
+    else push(r.error, "error");
+  };
+
+  const statusOpts = [
+    { v: "draft", l: "Brouillon" },
+    { v: "sale", l: "Confirmée" },
+    { v: "done", l: "Livrée" },
+    { v: "cancel", l: "Annulée" }
+  ];
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+        <thead style={{ background: "#f8fafc", color: "#64748b", textTransform: "uppercase" }}>
+          <tr>
+            <th style={{ padding: 12, textAlign: "left" }}>Réf (Odoo)</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Date</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Client</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Total</th>
+            <th style={{ padding: 12, textAlign: "center" }}>Statut Actuel</th>
+            <th style={{ padding: 12, textAlign: "right" }}>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map(o => (
+            <tr key={o.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+              <td style={{ padding: 12, fontWeight: 700 }}>{o.ref}</td>
+              <td style={{ padding: 12, color: "#94a3b8" }}>{o.date}</td>
+              <td style={{ padding: 12, fontWeight: 600 }}>{o.customer}</td>
+              <td style={{ padding: 12, fontWeight: 700, color: "#1E40AF" }}>{fmt(o.total)}</td>
+              <td style={{ padding: 12, textAlign: "center" }}>
+                <span style={{ padding: "4px 8px", borderRadius: 99, fontSize: 9, fontWeight: 700, 
+                  background: o.rawState === "sale" ? "#dbeafe" : o.rawState === "done" ? "#d1fae5" : o.rawState === "cancel" ? "#fee2e2" : "#f1f5f9",
+                  color: o.rawState === "sale" ? "#1d4ed8" : o.rawState === "done" ? "#047857" : o.rawState === "cancel" ? "#dc2626" : "#475569" }}>
+                  {o.status}
+                </span>
+              </td>
+              <td style={{ padding: 12, textAlign: "right" }}>
+                <select value={o.rawState} onChange={e => handleStatusChange(o.id, e.target.value)} style={{ padding: 4, borderRadius: 4, border: "1px solid #ccc", fontSize: 10 }}>
+                  {statusOpts.map(opt => <option key={opt.v} value={opt.v}>{opt.l}</option>)}
+                </select>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── 4. Clients ───────────────────────────────────────────────
+function AdminCustomers({ customers }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+        <thead style={{ background: "#f8fafc", color: "#64748b", textTransform: "uppercase" }}>
+          <tr>
+            <th style={{ padding: 12, textAlign: "left" }}>ID Odoo</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Nom</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Téléphone</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Inscription</th>
+          </tr>
+        </thead>
+        <tbody>
+          {customers.map(c => (
+            <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+              <td style={{ padding: 12, color: "#94a3b8" }}>#{c.id}</td>
+              <td style={{ padding: 12, fontWeight: 600 }}>{c.name}</td>
+              <td style={{ padding: 12, color: "#1E40AF" }}>{c.phone}</td>
+              <td style={{ padding: 12, color: "#94a3b8" }}>{c.create_date ? c.create_date.split(" ")[0] : "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -6,9 +6,12 @@
 const ADMIN_PASSWORD = "kumpax2024";
 
 function App() {
-  const [page, setPage] = useState("home");
+  const path = window.location.pathname;
+  // Détection de l'URL admin
+  const initPage = path.toLowerCase() === "/admin" ? "admin" : "home";
+
+  const [page, setPage] = useState(initPage);
   const [prod, setProd] = useState(null);
-  const [admin, setAdmin] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [q, setQ] = useState("");
   const [initCat, setInitCat] = useState("Tous");
@@ -45,54 +48,31 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  if (admin) return <Admin onExit={() => setAdmin(false)} url={window.API_URL} />;
-
-  // Si on est sur la page "admin_login", on affiche un petit formulaire
-  if (page === "admin_login") {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
-        <div style={{ background: "#fff", padding: 40, borderRadius: 24, boxShadow: "0 10px 25px -5px rgba(0,0,0,.05)", width: "100%", maxWidth: 360, textAlign: "center" }}>
-          <div style={{ fontSize: 40, marginBottom: 20 }}>⚙️</div>
-          <h1 style={{ fontSize: 20, fontWeight: 900, marginBottom: 24, letterSpacing: "-0.5px" }}>Accès Restreint</h1>
-          <input
-            type="password"
-            placeholder="Mot de passe"
-            onKeyDown={e => {
-              if (e.key === "Enter") {
-                if (e.target.value === ADMIN_PASSWORD) setAdmin(true);
-                else alert("❌ Mot de passe incorrect");
-              }
-            }}
-            style={{ width: "100%", padding: 16, borderRadius: 12, border: "2px solid #e2e8f0", fontSize: 16, outline: "none", textAlign: "center", marginBottom: 16 }}
-            autoFocus
-          />
-          <p style={{ color: "#64748b", fontSize: 12, cursor: "pointer", marginTop: 16 }} onClick={() => go("home")}>← Retour au site</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <CartProvider><WishProvider><ToastProvider>
-      <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-        <Navbar go={go} setCartOpen={setCartOpen} q={q} setQ={setQ} categories={categories} />
-        <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} go={go} />
-        {/* Bannière mode démo */}
-        {!window.USE_ODOO && (
-          <div style={{ background: "#fef3c7", borderBottom: "1px solid #fde68a", padding: "7px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 11, color: "#92400e", fontWeight: 600 }}>
-            ⚠️ Mode démo — données simulées. Pour connecter Odoo, configurez <code style={{ background: "rgba(0,0,0,.07)", padding: "1px 5px", borderRadius: 4 }}>window.KUMPAX_USE_ODOO=true</code> et <code style={{ background: "rgba(0,0,0,.07)", padding: "1px 5px", borderRadius: 4 }}>window.KUMPAX_API_URL</code>
-          </div>
-        )}
-        <main className="fade-in" key={page}>
-          {page === "home" && <Home go={go} products={allProducts} categories={categories} loading={dataLoading} />}
-          {page === "catalog" && <Catalog go={go} initCat={initCat} q={q} products={allProducts} categories={categories} />}
-          {page === "product" && prod && <ProductPage p={prod} go={go} allProducts={allProducts} />}
-          {page === "checkout" && <Checkout go={go} />}
-          {page === "wishlist" && <Wishlist go={go} allProducts={allProducts} />}
-          {page === "account" && <Account go={go} />}
-        </main>
-        <Footer go={go} />
-      </div>
+      {page === "admin" ? (
+        <Admin onExit={() => { window.history.pushState({}, "", "/"); setPage("home"); }} url={window.API_URL} />
+      ) : (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <Navbar go={go} setCartOpen={setCartOpen} q={q} setQ={setQ} categories={categories} />
+          <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} go={go} />
+          {/* Bannière mode démo */}
+          {!window.USE_ODOO && (
+            <div style={{ background: "#fef3c7", borderBottom: "1px solid #fde68a", padding: "7px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 11, color: "#92400e", fontWeight: 600 }}>
+              ⚠️ Mode démo — données simulées. Pour connecter Odoo, configurez <code style={{ background: "rgba(0,0,0,.07)", padding: "1px 5px", borderRadius: 4 }}>window.KUMPAX_USE_ODOO=true</code> et <code style={{ background: "rgba(0,0,0,.07)", padding: "1px 5px", borderRadius: 4 }}>window.KUMPAX_API_URL</code>
+            </div>
+          )}
+          <main className="fade-in" key={page}>
+            {page === "home" && <Home go={go} products={allProducts} categories={categories} loading={dataLoading} />}
+            {page === "catalog" && <Catalog go={go} initCat={initCat} q={q} products={allProducts} categories={categories} />}
+            {page === "product" && prod && <ProductPage p={prod} go={go} allProducts={allProducts} />}
+            {page === "checkout" && <Checkout go={go} />}
+            {page === "wishlist" && <Wishlist go={go} allProducts={allProducts} />}
+            {page === "account" && <Account go={go} />}
+          </main>
+          <Footer go={go} />
+        </div>
+      )}
     </ToastProvider></WishProvider></CartProvider>
   );
 }

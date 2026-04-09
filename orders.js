@@ -17,10 +17,10 @@ const checkAdminAuth = (req, res, next) => {
 };
 
 module.exports = (orderService) => {
-  // POST /api/orders  → crée une commande dans Odoo
+  // POST /api/orders  → crée un devis dans Odoo
   router.post("/", async (req, res) => {
     try {
-      const { delivery, items, payMethod, note } = req.body;
+      const { delivery, items, payMethod, deliveryMode, payProvider, note } = req.body;
 
       // Validation des champs obligatoires
       if (!delivery || !Array.isArray(items) || !items.length) {
@@ -34,8 +34,17 @@ module.exports = (orderService) => {
       if (!/^\d{9}$/.test(phone) && !/^\+221\d{9}$/.test(phone)) {
         return res.status(400).json({ success: false, error: "Numéro de téléphone invalide" });
       }
+      // Valide le mode de livraison
+      if (deliveryMode && ![ "home", "relay" ].includes(deliveryMode)) {
+        return res.status(400).json({ success: false, error: "deliveryMode invalide (home | relay)" });
+      }
+      // Valide le provider de paiement mobile si besoin
+      const VALID_PROVIDERS = ["wave", "orange_money", "yas"];
+      if (payMethod === "online" && payProvider && !VALID_PROVIDERS.includes(payProvider)) {
+        return res.status(400).json({ success: false, error: `payProvider invalide. Valeurs autorisées : ${VALID_PROVIDERS.join(", ")}` });
+      }
 
-      const result = await orderService.createOrder({ delivery, items, payMethod, note });
+      const result = await orderService.createOrder({ delivery, items, payMethod, deliveryMode, payProvider, note });
       res.json({ success: true, data: result });
     } catch (err) {
       console.error("[POST /orders]", err.message);

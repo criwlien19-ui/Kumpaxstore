@@ -54,26 +54,31 @@ class OrderService {
   // ─── 2. Création Commande ─────────────────────────────────
 
   /**
-   * Crée une commande de vente complète dans Odoo
+   * Crée une commande de vente dans Odoo en état Devis (draft)
    *
    * @param {Object} orderData
-   * @param {Object} orderData.delivery  - infos livraison { prenom, nom, telephone, adresse, quartier, ville }
+   * @param {Object} orderData.delivery  - infos livraison { prenom, telephone, adresse }
    * @param {Array}  orderData.items     - [{ id, name, price, qty }]
    * @param {string} orderData.payMethod - "cod" | "online"
+   * @param {string} orderData.deliveryMode - "home" | "relay"
+   * @param {string|null} orderData.payProvider - "wave" | "orange_money" | "yas" | null
    * @param {string} orderData.note      - note interne optionnelle
    *
    * @returns {Object} { orderId, orderName, status }
    */
-  async createOrder({ delivery, items, payMethod = "cod", note = "" }) {
-    // 1. Trouver ou créer le partenaire
+  async createOrder({ delivery, items, payMethod = "cod", deliveryMode = "home", payProvider = null, note = "" }) {
+    // 1. Trouver ou créer le partenaire (téléphone capturé ici)
     const partnerId = await this.findOrCreatePartner(delivery);
 
-    // 2. Préparer les notes de livraison
+    // 2. Préparer les notes de livraison enrichies
     const cleanNote = note ? DOMPurify.sanitize(note, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : "";
+    const deliveryModeLabel = deliveryMode === "relay" ? "Point Relais" : "Livraison à domicile";
+    const payLabel = payMethod === "cod" ? "À la livraison (Cash)" : `Mobile Money — ${payProvider || "non précisé"}`;
     const deliveryNote = [
+      `Mode livraison: ${deliveryModeLabel}`,
       `Adresse: ${delivery.adresse}`,
       `Téléphone: +221 ${delivery.telephone}`,
-      `Paiement: ${payMethod === "cod" ? "À la livraison (Cash)" : "Mobile Money (Wave/Orange Money)"}`,
+      `Paiement: ${payLabel}`,
       cleanNote ? `Note: ${cleanNote}` : "",
     ].filter(Boolean).join("\n");
 
@@ -93,14 +98,10 @@ class OrderService {
     // 4. Ajouter les lignes de commande
     await this._createOrderLines(saleOrderId, items);
 
-    // 5. Confirmer la commande → passe en état "sale"
-    await this.odoo.execute({
-      model: "sale.order",
-      method: "action_confirm",
-      ids: [saleOrderId],
-    });
+    // 5. La commande reste en état Devis (draft) — pas de action_confirm
+    //    L'équipe commerciale Odoo valide manuellement chaque devis.
 
-    // 6. Lire le numéro de commande généré par Odoo (ex: S00042)
+    // 6. Lire le numéro de devis généré par Odoo (ex: S00042)
     const orders = await this.odoo.read({
       model: "sale.order",
       ids: [saleOrderId],
@@ -108,12 +109,12 @@ class OrderService {
     });
 
     const order = orders[0];
-    console.log(`[Order] Confirmée: ${order.name}, total=${order.amount_total}`);
+    console.log(`[Order] Devis créé: ${order.name} (état=${order.state}), total=${order.amount_total}`);
 
     return {
       odooId: saleOrderId,
-      orderName: order.name,       // ex: "S00042"
-      status: order.state,      // "sale"
+      orderName: order.name,   // ex: "S00042"
+      status: order.state,     // "draft"
       total: order.amount_total,
       date: order.date_order,
     };

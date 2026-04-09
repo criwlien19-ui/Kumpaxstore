@@ -79,6 +79,108 @@ const api = {
     const r = await fetch(`${API_URL}/api/orders/customer/${phone}`);
     return r.json();
   },
+
+  // ══════════════════════════════════════════════════════════
+  // CALLS ADMIN (Sécurisés par JWT)
+  // ══════════════════════════════════════════════════════════
+
+  // Helper pour les entêtes admin
+  _getAdminHeaders() {
+    const token = sessionStorage.getItem("admin_token");
+    return {
+      "Content-Type": "application/json",
+      "Authorization": token ? `Bearer ${token}` : ""
+    };
+  },
+
+  async adminLogin(username, password) {
+    const r = await fetch(`${API_URL}/api/admin/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await r.json();
+    if (data.success && data.token) {
+      sessionStorage.setItem("admin_token", data.token);
+    }
+    return data;
+  },
+
+  adminLogout() {
+    sessionStorage.removeItem("admin_token");
+  },
+
+  async adminGetStats() {
+    const r = await fetch(`${API_URL}/api/admin/stats`, { headers: this._getAdminHeaders() });
+    return r.json();
+  },
+
+  async adminGetSalesChart(days = 30) {
+    const r = await fetch(`${API_URL}/api/admin/sales-chart?days=${days}`, { headers: this._getAdminHeaders() });
+    return r.json();
+  },
+
+  async adminGetProducts(search = "", limit = 200, offset = 0) {
+    const qs = new URLSearchParams({ search, limit, offset }).toString();
+    const r = await fetch(`${API_URL}/api/admin/products?${qs}`, { headers: this._getAdminHeaders() });
+    return r.json();
+  },
+
+  async adminCreateProduct(payload) {
+    const r = await fetch(`${API_URL}/api/admin/products`, {
+      method: "POST",
+      headers: this._getAdminHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return r.json();
+  },
+
+  async adminUpdateProduct(id, payload) {
+    const r = await fetch(`${API_URL}/api/admin/products/${id}`, {
+      method: "PATCH",
+      headers: this._getAdminHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return r.json();
+  },
+
+  async adminArchiveProduct(id) {
+    const r = await fetch(`${API_URL}/api/admin/products/${id}`, {
+      method: "DELETE",
+      headers: this._getAdminHeaders()
+    });
+    return r.json();
+  },
+
+  async adminUpdateStock(id, quantity) {
+    const r = await fetch(`${API_URL}/api/admin/stock/${id}`, {
+      method: "PATCH",
+      headers: this._getAdminHeaders(),
+      body: JSON.stringify({ quantity })
+    });
+    return r.json();
+  },
+
+  async adminGetOrders(state = "all", limit = 100, offset = 0) {
+    const qs = new URLSearchParams({ state, limit, offset }).toString();
+    const r = await fetch(`${API_URL}/api/admin/orders?${qs}`, { headers: this._getAdminHeaders() });
+    return r.json();
+  },
+
+  async adminUpdateOrderStatus(id, state) {
+    const r = await fetch(`${API_URL}/api/admin/orders/${id}/status`, {
+      method: "PATCH",
+      headers: this._getAdminHeaders(),
+      body: JSON.stringify({ state })
+    });
+    return r.json();
+  },
+
+  async adminGetCustomers(search = "", limit = 200) {
+    const qs = new URLSearchParams({ search, limit }).toString();
+    const r = await fetch(`${API_URL}/api/admin/customers?${qs}`, { headers: this._getAdminHeaders() });
+    return r.json();
+  },
 };
 
 // ── Hook générique pour appels API avec état loading/error ──

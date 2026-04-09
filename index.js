@@ -15,6 +15,7 @@ const { ProductService } = require("./product.service");
 const OrderService = require("./order.service");
 const productRoutes = require("./products");
 const orderRoutes = require("./orders");
+const adminRoutes = require("./admin.routes");
 
 const app = express();
 
@@ -67,6 +68,7 @@ const orderService = new OrderService(odoo);
 // ── Routes ─────────────────────────────────────────────────
 app.use("/api/products", productRoutes(productService));
 app.use("/api/orders", orderRoutes(orderService));
+app.use("/api/admin", adminRoutes(odoo, productService, orderService));
 
 // Health check + test connexion Odoo
 app.get("/api/health", async (req, res) => {
@@ -87,9 +89,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: "Erreur interne du serveur" });
 });
 
-// ── 404 ────────────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ success: false, error: "Route non trouvée" });
+// ── Frontend & 404 ─────────────────────────────────────────
+// Sert les fichiers statiques (CSS, JS, images, index.html)
+const path = require("path");
+app.use(express.static(__dirname));
+
+// Pour les routes front-end (React), on renvoie toujours index.html
+app.get(/^(?!\/api).+/, (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// Pour les routes d'API non trouvées
+app.use("/api", (req, res) => {
+  res.status(404).json({ success: false, error: "Route API non trouvée" });
 });
 
 // ── Démarrage ──────────────────────────────────────────────

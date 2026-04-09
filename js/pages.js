@@ -16,7 +16,7 @@ function Home({ go, products = PRODS, categories = CATS, loading = false }) {
           <div style={{ position: "absolute", bottom: 0, right: 40, width: 150, height: 150, borderRadius: "50%", background: "#fbbf24", filter: "blur(50px)" }} />
         </div>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "48px 16px 56px", position: "relative" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 32, alignItems: "center" }}>
+          <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 32, alignItems: "center" }}>
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.15)", borderRadius: 99, padding: "6px 16px", fontSize: 12, fontWeight: 600, color: "#fff", marginBottom: 20 }}>
                 ⚡ Livraison gratuite à Dakar
@@ -35,7 +35,7 @@ function Home({ go, products = PRODS, categories = CATS, loading = false }) {
                   Mode Sénégalaise
                 </button>
               </div>
-              <div style={{ display: "flex", gap: 32 }}>
+              <div className="hero-stats" style={{ display: "flex", gap: 32 }}>
                 {[["5K+", "Produits"], ["98%", "Satisfaits"], ["24h", "Livraison"]].map(([v, l]) => (
                   <div key={l}><p style={{ fontSize: 20, fontWeight: 900, color: "#fbbf24" }}>{v}</p><p style={{ fontSize: 11, color: "rgba(255,255,255,.6)" }}>{l}</p></div>
                 ))}
@@ -82,7 +82,7 @@ function Home({ go, products = PRODS, categories = CATS, loading = false }) {
             </div>
             <button onClick={() => go("catalog")} style={{ fontSize: 12, fontWeight: 700, color: BLUE, border: "none", background: "none", cursor: "pointer" }}>Voir tout →</button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 10 }}>
+          <div className="cat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 10 }}>
             {categories.map(c => (
               <button key={c.id} onClick={() => go("catalog", { cat: c.name })} style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "14px 8px",
@@ -143,82 +143,119 @@ function Home({ go, products = PRODS, categories = CATS, loading = false }) {
 // ══════════════════════════════════════════════
 function Catalog({ go, initCat, q, products = PRODS, categories = CATS }) {
   const [cat, setCat] = useState(initCat || "Tous");
+  const [subcat, setSubcat] = useState(""); // sous-catégorie active
   const [sort, setSort] = useState("popular");
   const [budget, setBudget] = useState([0, 1000000]);
   const [vis, setVis] = useState(12);
+  const [filterOpen, setFilterOpen] = useState(false); // modal filtre mobile
 
   useEffect(() => { if (initCat) setCat(initCat); }, [initCat]);
 
-  // Reset du "voir plus" lors du changement de catégorie ou tri
-  useEffect(() => { setVis(12); }, [cat, sort]);
+  // Réinitialiser la sous-catégorie et le "voir plus" lors du changement de catégorie ou tri
+  useEffect(() => { setVis(12); setSubcat(""); }, [cat, sort]);
+
+  // Catégorie courante (avec ses sous-catégories)
+  const activeCatObj = categories.find(c => c.name === cat);
 
   const list = useMemo(() => products.filter(p => {
     const catOk = cat === "Tous" || p.cat === cat;
+    const subcatOk = !subcat || p.subcat === subcat;
     const priceOk = p.price >= budget[0] && p.price <= budget[1];
     const qOk = !q.trim() || p.name.toLowerCase().includes(q.toLowerCase()) || p.cat.toLowerCase().includes(q.toLowerCase());
-    return catOk && priceOk && qOk;
-  }).sort((a, b) => sort === "price_asc" ? a.price - b.price : sort === "price_desc" ? b.price - a.price : sort === "rating" ? b.rating - a.rating : b.rev - a.rev), [cat, sort, budget, q]);
+    return catOk && subcatOk && priceOk && qOk;
+  }).sort((a, b) => sort === "price_asc" ? a.price - b.price : sort === "price_desc" ? b.price - a.price : sort === "rating" ? b.rating - a.rating : b.rev - a.rev), [cat, subcat, sort, budget, q]);
+
+  // Nombre de filtres actifs (pour le badge du bouton FAB mobile)
+  const activeFilters = (cat !== "Tous" ? 1 : 0) + (subcat ? 1 : 0) + (budget[0] !== 0 || budget[1] !== 1000000 ? 1 : 0);
+
+  // Contenu de la sidebar (partagé entre desktop et modal mobile)
+  const SidebarContent = () => (
+    <>
+      <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .1, marginBottom: 8 }}>Catégories</p>
+      {["Tous", ...categories.map(c => c.name)].map(c => (
+        <button key={c} onClick={() => { setCat(c); setSubcat(""); }} style={{
+          display: "block", width: "100%", textAlign: "left", padding: "7px 12px", borderRadius: 10, border: "none",
+          background: cat === c ? BLUE : "transparent", color: cat === c ? "#fff" : "#475569",
+          fontSize: 12, fontWeight: cat === c ? 700 : 500, cursor: "pointer", marginBottom: 2,
+          fontFamily: "'Sora',sans-serif", transition: "all .15s"
+        }}>{c}</button>
+      ))}
+
+      {/* Sous-catégories de la catégorie active */}
+      {activeCatObj && activeCatObj.subcategories && (
+        <>
+          <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .1, margin: "14px 0 8px" }}>Sous-catégories</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {activeCatObj.subcategories.map(sc => (
+              <button
+                key={sc}
+                className={`subcategory-pill${subcat === sc ? " active" : ""}`}
+                onClick={() => setSubcat(subcat === sc ? "" : sc)}
+              >{sc}</button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .1, margin: "16px 0 8px" }}>Trier par</p>
+      <select value={sort} onChange={e => setSort(e.target.value)} style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12, background: "#fff", fontFamily: "'Sora',sans-serif" }}>
+        <option value="popular">Plus populaires</option>
+        <option value="rating">Mieux notés</option>
+        <option value="price_asc">Prix croissant</option>
+        <option value="price_desc">Prix décroissant</option>
+      </select>
+      <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .1, margin: "16px 0 8px" }}>Budget</p>
+      {[[0, 100000, "< 100K"], [100000, 300000, "100K–300K"], [300000, 600000, "300K–600K"], [600000, 1000000, "> 600K"]].map(([mn, mx, lb]) => (
+        <button key={lb} onClick={() => setBudget([mn, mx])} style={{
+          display: "block", width: "100%", textAlign: "left", padding: "6px 12px", borderRadius: 10, border: "none",
+          background: budget[0] === mn && budget[1] === mx ? "#eff6ff" : "transparent",
+          color: budget[0] === mn && budget[1] === mx ? BLUE : "#475569",
+          fontSize: 12, fontWeight: budget[0] === mn && budget[1] === mx ? 700 : 500, cursor: "pointer", marginBottom: 2,
+          fontFamily: "'Sora',sans-serif"
+        }}>{lb}</button>
+      ))}
+      {(cat !== "Tous" || subcat || budget[0] !== 0 || budget[1] !== 1000000) && (
+        <button onClick={() => { setCat("Tous"); setSubcat(""); setBudget([0, 1000000]); }} style={{ width: "100%", marginTop: 12, padding: "7px 12px", borderRadius: 10, border: "1px solid #e2e8f0", background: "none", fontSize: 11, color: "#94a3b8", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+          ✕ Effacer les filtres
+        </button>
+      )}
+    </>
+  );
 
   return (
     <div style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 16px 40px" }}>
-      <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
+      {/* Fil d'Ariane */}
+      <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 16, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
         <button onClick={() => go("home")} style={{ border: "none", background: "none", cursor: "pointer", color: "#94a3b8", fontSize: 11 }} onMouseEnter={e => e.currentTarget.style.color = BLUE} onMouseLeave={e => e.currentTarget.style.color = "#94a3b8"}>Accueil</button>
         <span>›</span><span style={{ color: "#1e293b", fontWeight: 600 }}>Catalogue</span>
+        {cat !== "Tous" && <><span>›</span><span style={{ color: BLUE, fontWeight: 600 }}>{cat}</span></>}
+        {subcat && <><span>›</span><span style={{ color: "#7c3aed", fontWeight: 600 }}>{subcat}</span></>}
         {q && <><span>›</span><span style={{ color: BLUE, fontWeight: 600 }}>"{q}"</span></>}
       </div>
 
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-        {/* Sidebar */}
+        {/* Sidebar desktop */}
         <aside style={{ width: 210, flexShrink: 0 }} className="hide-mobile">
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
-            <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .1, marginBottom: 8 }}>Catégories</p>
-            {["Tous", ...categories.map(c => c.name)].map(c => (
-              <button key={c} onClick={() => setCat(c)} style={{
-                display: "block", width: "100%", textAlign: "left", padding: "7px 12px", borderRadius: 10, border: "none",
-                background: cat === c ? BLUE : "transparent", color: cat === c ? "#fff" : "#475569",
-                fontSize: 12, fontWeight: cat === c ? 700 : 500, cursor: "pointer", marginBottom: 2,
-                fontFamily: "'Sora',sans-serif", transition: "all .15s"
-              }}>{c}</button>
-            ))}
-            <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .1, margin: "16px 0 8px" }}>Trier par</p>
-            <select value={sort} onChange={e => setSort(e.target.value)} style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 12, background: "#fff", fontFamily: "'Sora',sans-serif" }}>
-              <option value="popular">Plus populaires</option>
-              <option value="rating">Mieux notés</option>
-              <option value="price_asc">Prix croissant</option>
-              <option value="price_desc">Prix décroissant</option>
-            </select>
-            <p style={{ fontSize: 10, fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .1, margin: "16px 0 8px" }}>Budget</p>
-            {[[0, 100000, "< 100K"], [100000, 300000, "100K–300K"], [300000, 600000, "300K–600K"], [600000, 1000000, "> 600K"]].map(([mn, mx, lb]) => (
-              <button key={lb} onClick={() => setBudget([mn, mx])} style={{
-                display: "block", width: "100%", textAlign: "left", padding: "6px 12px", borderRadius: 10, border: "none",
-                background: budget[0] === mn && budget[1] === mx ? "#eff6ff" : "transparent",
-                color: budget[0] === mn && budget[1] === mx ? BLUE : "#475569",
-                fontSize: 12, fontWeight: budget[0] === mn && budget[1] === mx ? 700 : 500, cursor: "pointer", marginBottom: 2,
-                fontFamily: "'Sora',sans-serif"
-              }}>{lb}</button>
-            ))}
-            {(cat !== "Tous" || budget[0] !== 0 || budget[1] !== 1000000) && (
-              <button onClick={() => { setCat("Tous"); setBudget([0, 1000000]); }} style={{ width: "100%", marginTop: 12, padding: "7px 12px", borderRadius: 10, border: "1px solid #e2e8f0", background: "none", fontSize: 11, color: "#94a3b8", cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
-                ✕ Effacer les filtres
-              </button>
-            )}
+            <SidebarContent />
           </div>
         </aside>
 
-        {/* Grid */}
+        {/* Grille produits */}
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 14 }}>
             <strong style={{ color: "#1e293b" }}>{list.length}</strong> produit{list.length !== 1 ? "s" : ""} trouvé{list.length !== 1 ? "s" : ""}
+            {subcat && <span style={{ marginLeft: 8, fontSize: 11, background: "#eff6ff", color: BLUE, padding: "2px 8px", borderRadius: 8, fontWeight: 700 }}>› {subcat}</span>}
           </p>
           {list.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
               <p style={{ fontSize: 40, marginBottom: 12, opacity: .3 }}>📦</p>
               <p style={{ fontWeight: 700, color: "#64748b", marginBottom: 8 }}>Aucun produit trouvé</p>
-              <button onClick={() => { setCat("Tous"); setBudget([0, 1000000]); }} style={{ fontSize: 12, color: BLUE, border: "none", background: "none", cursor: "pointer", textDecoration: "underline" }}>Effacer les filtres</button>
+              <button onClick={() => { setCat("Tous"); setSubcat(""); setBudget([0, 1000000]); }} style={{ fontSize: 12, color: BLUE, border: "none", background: "none", cursor: "pointer", textDecoration: "underline" }}>Effacer les filtres</button>
             </div>
           ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))", gap: 14, marginBottom: 20 }}>
+              <div className="catalog-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))", gap: 14, marginBottom: 20 }}>
                 {list.slice(0, vis).map(p => <ProductCard key={p.id} p={p} go={go} />)}
               </div>
               {vis < list.length && (
@@ -234,9 +271,31 @@ function Catalog({ go, initCat, q, products = PRODS, categories = CATS }) {
           )}
         </div>
       </div>
+
+      {/* ── Bouton filtre flottant (mobile) ── */}
+      <button className="filter-fab" onClick={() => setFilterOpen(true)}>
+        🎚 Filtres{activeFilters > 0 && <span style={{ background: "#fbbf24", color: "#1e293b", borderRadius: 99, padding: "1px 7px", fontSize: 10, marginLeft: 4 }}>{activeFilters}</span>}
+      </button>
+
+      {/* ── Modal filtre mobile (bottom-sheet) ── */}
+      {filterOpen && (
+        <div className="filter-overlay" onClick={() => setFilterOpen(false)}>
+          <div className="filter-sheet" onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <p style={{ fontWeight: 900, fontSize: 16 }}>Filtres</p>
+              <button onClick={() => setFilterOpen(false)} style={{ border: "none", background: "none", fontSize: 22, cursor: "pointer", color: "#94a3b8" }}>✕</button>
+            </div>
+            <SidebarContent />
+            <button onClick={() => setFilterOpen(false)} style={{ marginTop: 16, width: "100%", padding: "13px 20px", borderRadius: 12, border: "none", background: BLUE, color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>
+              Voir {list.length} résultat{list.length !== 1 ? "s" : ""}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ══════════════════════════════════════════════
 // ── PRODUCT PAGE ──
@@ -358,34 +417,49 @@ function Checkout({ go }) {
   const { items, total, dispatch } = useCart();
   const { push } = useToast();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ prenom: "", telephone: "", adresse: "", payMethod: "cod" });
+  const [form, setForm] = useState({
+    prenom: "", telephone: "", adresse: "",
+    payMethod: "cod",
+    deliveryMode: "home",   // "home" | "relay"
+    relayPoint: "",         // ID du point relais choisi
+    payProvider: "wave",    // "wave" | "orange_money" | "yas"
+  });
   const pay = form.payMethod;
   const setPay = (v) => setForm(f => ({ ...f, payMethod: v }));
   const [err, setErr] = useState({});
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [payProgress, setPayProgress] = useState(0); // 0: off, 1: attente PIN, 2: succès
+  const [payProgress, setPayProgress] = useState(0); // 0: off, 1: attente, 2: succès
   const orderId = useRef(null);
 
-  // Reset les erreurs à chaque changement d'étape
   useEffect(() => { setErr({}); }, [step]);
 
   const inp = e => { setForm(f => ({ ...f, [e.target.name]: e.target.value })); setErr(er => ({ ...er, [e.target.name]: "" })); };
-  const nextStep = (n) => { setStep(n); window.scrollTo(0, 0); };
+
+  /** Détermine l'adresse effective selon le mode de livraison */
+  const effectiveAdresse = form.deliveryMode === "relay"
+    ? (RELAY_POINTS.find(r => r.id === form.relayPoint)?.label || "")
+    : form.adresse;
+
+  /** Label du provider paiement sélectionné */
+  const providerLabel = PAYMENT_PROVIDERS.find(p => p.id === form.payProvider)?.label || "Mobile Money";
+  const providerColor = PAYMENT_PROVIDERS.find(p => p.id === form.payProvider)?.color || BLUE;
 
   const finalizeOrder = async () => {
     setSubmitting(true);
     try {
       const res = await window.api.createOrder({
-        delivery: form,
+        delivery: { ...form, adresse: effectiveAdresse },
         items: items.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
         payMethod: form.payMethod,
+        deliveryMode: form.deliveryMode,
+        payProvider: form.payMethod === "online" ? form.payProvider : null,
       });
       if (res.success) {
-        orderId.current = res.data.orderName;
+        orderId.current = res.data?.orderName;
         dispatch({ type: "CLEAR" });
         setDone(true);
-        push("Commande confirmée ! 🎉");
+        push("Commande enregistrée ! 🎉");
       } else {
         push(res.error || "Erreur lors de la commande", "error");
       }
@@ -395,10 +469,9 @@ function Checkout({ go }) {
 
   const submit = async () => {
     if (form.payMethod !== "cod" && payProgress === 0) {
-      // Démarrer simulateur Wave/Orange
       setPayProgress(1);
-      setTimeout(() => setPayProgress(2), 3500); // 3.5s d'attente
-      setTimeout(() => { setPayProgress(0); finalizeOrder(); }, 5000); // puis on finalise
+      setTimeout(() => setPayProgress(2), 3500);
+      setTimeout(() => { setPayProgress(0); finalizeOrder(); }, 5000);
       return;
     }
     finalizeOrder();
@@ -408,7 +481,8 @@ function Checkout({ go }) {
     const e = {};
     if (!form.prenom.trim()) e.prenom = "Requis";
     if (!/^\d{9}$/.test(form.telephone.replace(/\s/g, ""))) e.telephone = "9 chiffres requis";
-    if (!form.adresse.trim()) e.adresse = "Requise";
+    if (form.deliveryMode === "home" && !form.adresse.trim()) e.adresse = "Requise";
+    if (form.deliveryMode === "relay" && !form.relayPoint) e.relayPoint = "Choisissez un point relais";
     setErr(e);
     if (Object.keys(e).length) { push("Veuillez corriger les erreurs", "error"); return false; }
     return true;
@@ -426,15 +500,20 @@ function Checkout({ go }) {
 
   if (done) return (
     <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ maxWidth: 380, width: "100%", textAlign: "center" }}>
+      <div style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
         <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 36, boxShadow: "0 8px 24px rgba(16,185,129,.3)" }}>✓</div>
-        <h2 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", marginBottom: 10 }}>Commande confirmée ! 🎉</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", marginBottom: 10 }}>Commande enregistrée ! 🎉</h2>
         <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, marginBottom: 20 }}>Merci <strong>{form.prenom}</strong> ! Vous recevrez un SMS de confirmation au <strong>+221 {form.telephone}</strong>.</p>
         <div style={{ background: "#eff6ff", borderRadius: 16, padding: 16, textAlign: "left", marginBottom: 20 }}>
-          <p style={{ fontSize: 14, fontWeight: 900, color: DARK_BLUE, marginBottom: 8 }}>
-            {orderId.current ? `Réf Odoo : ${orderId.current}` : "Commande enregistrée"}
+          <p style={{ fontSize: 14, fontWeight: 900, color: DARK_BLUE, marginBottom: 10 }}>
+            {orderId.current ? `Réf : ${orderId.current}` : "Commande en cours de traitement"}
           </p>
-          {[["Livraison estimée", "24–48 heures"], ["Adresse", form.adresse], ["Paiement", pay === "cod" ? "À la livraison" : "Mobile Money"]].map(([k, v]) => (
+          {[
+            ["Mode livraison", form.deliveryMode === "home" ? "🏠 Livraison à domicile" : "📦 Point Relais"],
+            ["Adresse", effectiveAdresse || form.adresse],
+            ["Délai estimé", form.deliveryMode === "relay" ? "24–72h" : "24–48h"],
+            ["Paiement", pay === "cod" ? "💵 À la livraison" : `${PAYMENT_PROVIDERS.find(p => p.id === form.payProvider)?.emoji} ${providerLabel}`],
+          ].map(([k, v]) => (
             <p key={k} style={{ fontSize: 12, color: "#2563eb", marginBottom: 4 }}>{k} : <strong>{v}</strong></p>
           ))}
         </div>
@@ -448,14 +527,11 @@ function Checkout({ go }) {
       <button onClick={() => go("catalog")} style={{ border: "none", background: "none", cursor: "pointer", color: "#94a3b8", fontSize: 12, marginBottom: 16, display: "flex", alignItems: "center", gap: 4 }}>← Retour au catalogue</button>
       <h1 style={{ fontSize: 22, fontWeight: 900, color: "#0f172a", marginBottom: 20 }}>Finaliser la commande</h1>
 
-      {/* Steps */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
+      {/* Steps indicator */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
         {[{ n: 1, l: "Livraison" }, { n: 2, l: "Paiement" }, { n: 3, l: "Confirmation" }].map((s, i) => (
           <React.Fragment key={s.n}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 99, fontSize: 11, fontWeight: 700,
-              background: step >= s.n ? BLUE : "#f1f5f9", color: step >= s.n ? "#fff" : "#94a3b8", transition: "all .2s"
-            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: step >= s.n ? BLUE : "#f1f5f9", color: step >= s.n ? "#fff" : "#94a3b8", transition: "all .2s" }}>
               <span style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(255,255,255,.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10 }}>
                 {step > s.n ? "✓" : s.n}
               </span>
@@ -466,21 +542,23 @@ function Checkout({ go }) {
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 20, alignItems: "start" }}>
+      <div className="checkout-main-grid" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 20, alignItems: "start" }}>
         <div>
-          {/* Step 1 */}
+          {/* ── Step 1 : Livraison ── */}
           {step === 1 && (
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>📍 Infos de livraison</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginBottom: 20 }}>📍 Infos de livraison</h2>
+
+              {/* Prénom */}
               <div style={{ marginBottom: 12 }}>
-                <div>
-                  <label style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase", letterSpacing: .08 }}>Prénom *</label>
-                  <input name="prenom" value={form.prenom} onChange={inp} placeholder="Moussa"
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${err.prenom ? "#fca5a5" : "#e2e8f0"}`, fontSize: 13, fontFamily: "'Sora',sans-serif", background: err.prenom ? "#fff5f5" : "#fff" }} />
-                  {err.prenom && <p style={{ fontSize: 10, color: "#ef4444", marginTop: 3 }}>{err.prenom}</p>}
-                </div>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase" }}>Prénom *</label>
+                <input name="prenom" value={form.prenom} onChange={inp} placeholder="Moussa"
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${err.prenom ? "#fca5a5" : "#e2e8f0"}`, fontSize: 13, fontFamily: "'Sora',sans-serif", background: err.prenom ? "#fff5f5" : "#fff" }} />
+                {err.prenom && <p style={{ fontSize: 10, color: "#ef4444", marginTop: 3 }}>{err.prenom}</p>}
               </div>
-              <div style={{ marginBottom: 12 }}>
+
+              {/* Téléphone */}
+              <div style={{ marginBottom: 16 }}>
                 <label style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase" }}>Téléphone *</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc", fontSize: 12, color: "#64748b", flexShrink: 0, display: "flex", alignItems: "center", gap: 4 }}>🇸🇳 +221</div>
@@ -491,49 +569,116 @@ function Checkout({ go }) {
                   </div>
                 </div>
               </div>
-              <div style={{ marginBottom: 20 }}>
-                <div>
-                  <label style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase", letterSpacing: .08 }}>Adresse *</label>
-                  <input name="adresse" value={form.adresse} onChange={inp} placeholder="Rue, numéro, bâtiment, etc..."
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${err.adresse ? "#fca5a5" : "#e2e8f0"}`, fontSize: 13, fontFamily: "'Sora',sans-serif", background: err.adresse ? "#fff5f5" : "#fff" }} />
-                  {err.adresse && <p style={{ fontSize: 10, color: "#ef4444", marginTop: 3 }}>{err.adresse}</p>}
+
+              {/* Mode de livraison */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 8, textTransform: "uppercase" }}>Mode de livraison *</label>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {DELIVERY_MODES.map(mode => (
+                    <button
+                      key={mode.id}
+                      className={`delivery-card${form.deliveryMode === mode.id ? " active" : ""}`}
+                      onClick={() => setForm(f => ({ ...f, deliveryMode: mode.id, relayPoint: "" }))}
+                      style={{ flex: 1 }}
+                    >
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: form.deliveryMode === mode.id ? "#dbeafe" : "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{mode.icon}</div>
+                      <div style={{ textAlign: "left" }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: form.deliveryMode === mode.id ? BLUE : "#1e293b" }}>{mode.label}</p>
+                        <p style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{mode.desc}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
+
+              {/* Adresse ou Point Relais */}
+              <div style={{ marginBottom: 20 }}>
+                {form.deliveryMode === "home" ? (
+                  <>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase" }}>Adresse de livraison *</label>
+                    <input name="adresse" value={form.adresse} onChange={inp} placeholder="Rue, numéro, quartier, Dakar..."
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${err.adresse ? "#fca5a5" : "#e2e8f0"}`, fontSize: 13, fontFamily: "'Sora',sans-serif", background: err.adresse ? "#fff5f5" : "#fff" }} />
+                    {err.adresse && <p style={{ fontSize: 10, color: "#ef4444", marginTop: 3 }}>{err.adresse}</p>}
+                  </>
+                ) : (
+                  <>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#94a3b8", marginBottom: 4, textTransform: "uppercase" }}>Choisir un Point Relais *</label>
+                    <select
+                      name="relayPoint" value={form.relayPoint}
+                      onChange={e => { setForm(f => ({ ...f, relayPoint: e.target.value })); setErr(er => ({ ...er, relayPoint: "" })); }}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${err.relayPoint ? "#fca5a5" : "#e2e8f0"}`, fontSize: 13, fontFamily: "'Sora',sans-serif", background: err.relayPoint ? "#fff5f5" : "#fff" }}
+                    >
+                      <option value="">-- Sélectionner un point relais --</option>
+                      {RELAY_POINTS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                    </select>
+                    {err.relayPoint && <p style={{ fontSize: 10, color: "#ef4444", marginTop: 3 }}>{err.relayPoint}</p>}
+                  </>
+                )}
+              </div>
+
               <Btn onClick={() => { if (validate()) setStep(2); }} style={{ width: "100%", borderRadius: 12, padding: "13px 20px" }}>
                 Continuer vers le paiement →
               </Btn>
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* ── Step 2 : Paiement ── */}
           {step === 2 && (
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>💳 Méthode de paiement</h2>
-              {[["cod", "💵", "Paiement à la livraison", "Payez en cash à la réception"], ["online", "📱", "Mobile Money", "Wave, Orange Money ou Free Money"]].map(([v, em, t, s]) => (
+              <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginBottom: 20 }}>💳 Méthode de paiement</h2>
+
+              {/* Choix COD / Mobile */}
+              {[
+                { v: "cod",    icon: "💵", title: "Paiement à la livraison", sub: "Payez en cash à la réception" },
+                { v: "online", icon: "📱", title: "Mobile Money",            sub: "Wave, Orange Money ou Yas" },
+              ].map(({ v, icon, title, sub }) => (
                 <label key={v} onClick={() => setPay(v)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 14, borderRadius: 14, border: `2px solid ${pay === v ? BLUE : "#e2e8f0"}`, background: pay === v ? "#eff6ff" : "#fff", cursor: "pointer", marginBottom: 10, transition: "all .2s" }}>
-                  <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${pay === v ? BLUE : "#cbd5e1"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${pay === v ? BLUE : "#cbd5e1"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
                     {pay === v && <div style={{ width: 8, height: 8, borderRadius: "50%", background: BLUE }} />}
                   </div>
-                  <span style={{ fontSize: 22 }}>{em}</span>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{t}</p>
-                    <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{s}</p>
+                  <span style={{ fontSize: 22 }}>{icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{title}</p>
+                    <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{sub}</p>
+
+                    {/* Sélecteur de provider Mobile Money */}
                     {v === "online" && pay === "online" && (
-                      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                        {[["🌊", "Wave"], ["🟠", "Orange Money"], ["💙", "Free Money"]].map(([e, n]) => (
-                          <span key={n} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", display: "flex", alignItems: "center", gap: 3 }}>{e} {n}</span>
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        {PAYMENT_PROVIDERS.map(pv => (
+                          <button
+                            key={pv.id}
+                            className={`payment-provider-btn${form.payProvider === pv.id ? " active" : ""}`}
+                            onClick={e => { e.stopPropagation(); setForm(f => ({ ...f, payProvider: pv.id })); }}
+                            style={{
+                              borderColor: form.payProvider === pv.id ? pv.color : "#e2e8f0",
+                              background: form.payProvider === pv.id ? pv.bg : "#fff",
+                            }}
+                          >
+                            <span style={{ fontSize: 22 }}>{pv.emoji}</span>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: form.payProvider === pv.id ? pv.color : "#475569" }}>{pv.label}</span>
+                          </button>
                         ))}
                       </div>
                     )}
                   </div>
                 </label>
               ))}
-              {pay === "online" && (
-                <div style={{ display: "flex", gap: 8, padding: 12, background: "#fffbeb", borderRadius: 12, border: "1px solid #fde68a", marginBottom: 16 }}>
-                  <span style={{ fontSize: 14, flexShrink: 0 }}>⚠</span>
-                  <p style={{ fontSize: 11, color: "#b45309" }}>Paiement mobile en cours d'intégration. Notre équipe vous enverra un lien de paiement par SMS.</p>
+
+              {/* Simulateur paiement mobile */}
+              {pay === "online" && payProgress === 1 && (
+                <div style={{ padding: 16, background: `${PAYMENT_PROVIDERS.find(p => p.id === form.payProvider)?.bg || "#eff6ff"}`, borderRadius: 14, marginBottom: 16, textAlign: "center" }}>
+                  <div className="pulse-pay" style={{ fontSize: 32, marginBottom: 8 }}>{PAYMENT_PROVIDERS.find(p => p.id === form.payProvider)?.emoji}</div>
+                  <p style={{ fontWeight: 800, color: providerColor, fontSize: 13, marginBottom: 4 }}>Paiement {providerLabel} en cours…</p>
+                  <p style={{ fontSize: 11, color: "#64748b" }}>Validez la transaction sur votre téléphone</p>
                 </div>
               )}
+              {pay === "online" && payProgress === 2 && (
+                <div style={{ padding: 14, background: "#ecfdf5", borderRadius: 14, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 22 }}>✅</span>
+                  <p style={{ fontWeight: 700, color: "#047857", fontSize: 13 }}>Paiement {providerLabel} validé !</p>
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
                 <button onClick={() => setStep(1)} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid #e2e8f0", background: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>← Retour</button>
                 <Btn onClick={() => setStep(3)} style={{ flex: 1, borderRadius: 12 }}>Vérifier la commande →</Btn>
@@ -541,12 +686,18 @@ function Checkout({ go }) {
             </div>
           )}
 
-          {/* Step 3 */}
+          {/* ── Step 3 : Confirmation ── */}
           {step === 3 && (
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #f1f5f9", padding: 24, boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
               <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginBottom: 16 }}>📋 Récapitulatif final</h2>
               <div style={{ background: "#f8fafc", borderRadius: 12, padding: 12, marginBottom: 16 }}>
-                {[["Client", form.prenom], ["Téléphone", `+221 ${form.telephone}`], ["Livraison", form.adresse], ["Paiement", pay === "cod" ? "À la livraison" : "Mobile Money"]].map(([k, v]) => (
+                {[
+                  ["Client", form.prenom],
+                  ["Téléphone", `+221 ${form.telephone}`],
+                  ["Mode livraison", form.deliveryMode === "home" ? "🏠 Domicile" : "📦 Point Relais"],
+                  ["Adresse", effectiveAdresse || form.adresse],
+                  ["Paiement", pay === "cod" ? "💵 À la livraison" : `${PAYMENT_PROVIDERS.find(p => p.id === form.payProvider)?.emoji} ${providerLabel}`],
+                ].map(([k, v]) => (
                   <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
                     <span style={{ color: "#94a3b8" }}>{k}</span>
                     <span style={{ fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>{v}</span>
@@ -575,35 +726,13 @@ function Checkout({ go }) {
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setStep(2)} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid #e2e8f0", background: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Sora',sans-serif" }}>← Retour</button>
-                <button onClick={async () => {
-                  setSubmitting(true);
-                  try {
-                    const res = await window.api.createOrder({
-                      delivery: form,
-                      items: items.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
-                      payMethod: pay,
-                    });
-                    if (res.success) {
-                      orderId.current = res.data.orderName;
-                      dispatch({ type: "CLEAR" });
-                      setDone(true);
-                      push("Commande confirmée ! 🎉");
-                    } else {
-                      push(res.error || "Erreur lors de la commande", "error");
-                    }
-                  } catch (e) { push("Erreur réseau : " + e.message, "error"); }
-                  finally { setSubmitting(false); }
-                }}
+                <button
+                  onClick={submit}
                   disabled={submitting}
-                  style={{
-                    flex: 1, padding: "13px 20px", borderRadius: 12, border: "none",
-                    background: submitting ? "#94a3b8" : "#10b981",
-                    color: "#fff", fontWeight: 800, fontSize: 13, cursor: submitting ? "not-allowed" : "pointer",
-                    fontFamily: "'Sora',sans-serif", boxShadow: submitting ? "none" : "0 4px 16px rgba(16,185,129,.35)",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all .2s"
-                  }}>
+                  style={{ flex: 1, padding: "13px 20px", borderRadius: 12, border: "none", background: submitting ? "#94a3b8" : "#10b981", color: "#fff", fontWeight: 800, fontSize: 13, cursor: submitting ? "not-allowed" : "pointer", fontFamily: "'Sora',sans-serif", boxShadow: submitting ? "none" : "0 4px 16px rgba(16,185,129,.35)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all .2s" }}
+                >
                   {submitting
-                    ? <><span style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />Envoi en cours...</>
+                    ? <><span style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "spin .7s linear infinite" }} />Envoi...</>
                     : <>✓ Confirmer la commande</>}
                 </button>
               </div>
@@ -611,7 +740,7 @@ function Checkout({ go }) {
           )}
         </div>
 
-        {/* Summary sidebar */}
+        {/* Récapitulatif sidebar (desktop uniquement) */}
         <div style={{ width: 240, flexShrink: 0 }} className="hide-mobile">
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", padding: 16, marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
             <p style={{ fontWeight: 800, fontSize: 13, marginBottom: 12 }}>Votre commande</p>
@@ -646,7 +775,6 @@ function Checkout({ go }) {
     </div>
   );
 }
-
 // ══════════════════════════════════════════════
 // ── WISHLIST ──
 // ══════════════════════════════════════════════

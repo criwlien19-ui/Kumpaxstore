@@ -182,3 +182,95 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6;box-sh
   .md\:grid-cols-2{grid-template-columns:repeat(2,1fr)}
   .md\:grid-cols-4{grid-template-columns:repeat(4,1fr)}
 }
+
+/* ── Mobile ≤ 640px ───────────────────────────── */
+@media(max-width:640px){
+  /* Catalogue — passage en 2 colonnes serrées */
+  .catalog-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px!important}
+  /* Home — héros en colonne */
+  .hero-grid{grid-template-columns:1fr!important}
+  /* Catégories — 3 colonnes */
+  .cat-grid{grid-template-columns:repeat(3,1fr)!important}
+  /* Checkout — colonne unique */
+  .checkout-main-grid{grid-template-columns:1fr!important}
+  /* ProductPage — colonne unique */
+  .product-detail-grid{grid-template-columns:1fr!important}
+  /* Padding global */
+  .mobile-px{padding-left:12px!important;padding-right:12px!important}
+  /* Boutons — tap target minimum 44px */
+  button{min-height:36px}
+}
+
+/* ── Mobile ≤ 480px ───────────────────────────── */
+@media(max-width:480px){
+  .catalog-grid{grid-template-columns:repeat(1,1fr)!important;gap:10px!important}
+  .cat-grid{grid-template-columns:repeat(2,1fr)!important}
+  .hero-stats{gap:16px!important}
+}
+
+/* ══════════════════════════════════════════════
+   Sous-catégories
+   ══════════════════════════════════════════════ */
+.subcategory-pill{
+  display:inline-flex;align-items:center;padding:4px 12px;border-radius:99px;
+  font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;
+  border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-family:'Sora',sans-serif
+}
+.subcategory-pill:hover,.subcategory-pill.active{
+  border-color:#1E40AF;background:#eff6ff;color:#1E40AF
+}
+
+/* ══════════════════════════════════════════════
+   Fiches Livraison
+   ══════════════════════════════════════════════ */
+.delivery-card{
+  display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:14px;
+  border:2px solid #e2e8f0;background:#fff;cursor:pointer;
+  transition:all .2s;font-family:'Sora',sans-serif;width:100%
+}
+.delivery-card:hover{border-color:#93c5fd;background:#f8fafc}
+.delivery-card.active{border-color:#1E40AF;background:#eff6ff}
+
+/* ══════════════════════════════════════════════
+   Boutons Provider Paiement Mobile
+   ══════════════════════════════════════════════ */
+.payment-provider-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;padding:12px 8px;border-radius:14px;border:2px solid #e2e8f0;
+  background:#fff;cursor:pointer;transition:all .2s;font-family:'Sora',sans-serif;
+  min-width:80px;flex:1
+}
+.payment-provider-btn:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.payment-provider-btn.active{border-width:2.5px}
+
+/* ══════════════════════════════════════════════
+   Animation paiement en attente
+   ══════════════════════════════════════════════ */
+@keyframes pulsePay{
+  0%,100%{transform:scale(1);opacity:1}
+  50%{transform:scale(1.08);opacity:.85}
+}
+.pulse-pay{animation:pulsePay 1.4s ease-in-out infinite}
+
+/* ── Filtre mobile flottant ── */
+.filter-fab{
+  position:fixed;bottom:80px;right:16px;z-index:300;
+  display:none;align-items:center;gap:6px;
+  padding:10px 18px;border-radius:99px;border:none;
+  background:#1E40AF;color:#fff;font-weight:800;font-size:12px;
+  cursor:pointer;box-shadow:0 4px 20px rgba(30,64,175,.4);
+  font-family:'Sora',sans-serif;transition:transform .2s
+}
+.filter-fab:active{transform:scale(.95)}
+@media(max-width:768px){.filter-fab{display:flex}}
+
+/* ── Overlay modal filtre mobile ── */
+.filter-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;
+  display:flex;align-items:flex-end
+}
+.filter-sheet{
+  background:#fff;border-radius:24px 24px 0 0;padding:20px 16px 32px;
+  width:100%;max-height:80vh;overflow-y:auto
+}
+

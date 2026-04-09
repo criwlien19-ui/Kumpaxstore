@@ -138,3 +138,8 @@ function ToastProvider({ children }) {
 }
 
 const useToast = () => useContext(ToastCtx);
+
+// Export hooks to window for usage in other scripts
+window.useCart = useCart;
+window.useWish = useWish;
+window.useToast = useToast;
