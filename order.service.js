@@ -1,8 +1,12 @@
-const createDOMPurify = require("dompurify");
-const { JSDOM } = require("jsdom");
-
-const window = new JSDOM("").window;
-const DOMPurify = createDOMPurify(window);
+function sanitizePlainText(value) {
+  if (typeof value !== "string") return "";
+  // Strip HTML tags and unsafe control chars while preserving line breaks.
+  return value
+    .replace(/<[^>]*>/g, "")
+    .replace(/[^\S\r\n]+/g, " ")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim();
+}
 
 class OrderService {
   constructor(odooClient) {
@@ -74,7 +78,7 @@ class OrderService {
     const partnerId = await this.findOrCreatePartner(delivery);
 
     // 2. Préparer les notes de livraison enrichies
-    const cleanNote = note ? DOMPurify.sanitize(note, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) : "";
+    const cleanNote = sanitizePlainText(note);
     const deliveryModeLabel = deliveryMode === "relay" ? "Point Relais" : "Livraison à domicile";
     const payLabel = payMethod === "cod" ? "À la livraison (Cash)" : `Mobile Money — ${payProvider || "non précisé"}`;
     const deliveryNote = [
