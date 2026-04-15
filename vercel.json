@@ -8,6 +8,22 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "js/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "css/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "assets/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "site.webmanifest",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
