@@ -4,12 +4,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kumpax Store</title>
-  <meta name="description"
-    content="Kumpax Store — Le shopping premium au Sénégal. Smartphones, vêtements, électroménager et plus, livrés en 24-48h." />
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&display=swap"
+  <!-- SEO -->
+  <title>Kumpax Store — Shopping Premium au Sénégal</title>
+  <meta name="description"
+    content="Kumpax Store — Le shopping premium au Sénégal. Smartphones, vêtements, électroménager et plus, livrés en 24-48h à Dakar et partout au Sénégal." />
+  <meta name="theme-color" content="#1E40AF" />
+  <link rel="icon" type="image/png" href="assets/kumpax-logo.png" />
+  <link rel="shortcut icon" type="image/png" href="assets/kumpax-logo.png" />
+  <link rel="apple-touch-icon" href="assets/kumpax-logo.png" />
+  <link rel="manifest" href="site.webmanifest" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Kumpax Store — Shopping Premium au Sénégal" />
+  <meta property="og:description"
+    content="Des milliers de produits authentiques et importés, livrés chez vous en 24-48h. Paiement Wave, Orange Money & Cash." />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="fr_SN" />
+
+  <!-- Performance: Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Google Fonts: Space Grotesk (headings) + DM Sans (body) -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap"
     rel="stylesheet" />
 
   <!-- Styles -->
@@ -24,23 +43,6 @@
 <body>
   <div id="root"></div>
 
-  <!--
-    ═══════════════════════════════════════════════
-    KUMPAX STORE — Scripts
-    Ordre de chargement important :
-    1. data.js       → Constantes & données
-    2. api.js        → Couche API Odoo
-    3. contexts.js   → Contextes React (Cart, Wish, Toast)
-    4. components.js → Composants réutilisables
-    5. Navbar.js     → Barre de navigation
-    6. CartDrawer.js → Tiroir du panier
-    7. ProductCard.js→ Carte produit
-    8. pages.js      → Pages (Home, Catalog, Product, Checkout, Wishlist, Account)
-    9. Admin.js      → Panneau d'administration
-    10. Footer.js    → Pied de page
-    11. App.js       → Composant principal + montage React
-    ═══════════════════════════════════════════════
-  -->
   <!-- ── Configuration Odoo ── -->
   <script>
     window.USE_ODOO = true;
@@ -49,6 +51,11 @@
     window.API_URL = isLocal ? "http://" + hostname + ":3001" : "https://api.kumpax.sn";
   </script>
 
+  <!--
+    ═══════════════════════════════════════════════
+    KUMPAX STORE — Scripts (chargement séquentiel)
+    ═══════════════════════════════════════════════
+  -->
   <script type="text/babel" src="js/data.js"></script>
   <script type="text/babel" src="js/api.js"></script>
   <script type="text/babel" src="js/contexts.js"></script>

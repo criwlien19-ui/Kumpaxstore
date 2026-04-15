@@ -16,6 +16,7 @@ const OrderService = require("./order.service");
 const productRoutes = require("./products");
 const orderRoutes = require("./orders");
 const adminRoutes = require("./admin.routes");
+const promotionsRoutes = require("./promotions");
 
 const app = express();
 
@@ -69,6 +70,7 @@ const orderService = new OrderService(odoo);
 app.use("/api/products", productRoutes(productService));
 app.use("/api/orders", orderRoutes(orderService));
 app.use("/api/admin", adminRoutes(odoo, productService, orderService));
+app.use("/api/promotions", promotionsRoutes());
 
 // Health check + test connexion Odoo
 app.get("/api/health", async (req, res) => {

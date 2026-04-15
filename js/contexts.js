@@ -98,6 +98,22 @@ function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   // Ref pour tracker les timeouts actifs et les nettoyer
   const timers = useRef({});
+  const defaultDuration = 3200;
+
+  const clearToastTimer = useCallback((id) => {
+    if (timers.current[id]) {
+      clearTimeout(timers.current[id]);
+      delete timers.current[id];
+    }
+  }, []);
+
+  const scheduleToastRemoval = useCallback((id, duration) => {
+    clearToastTimer(id);
+    timers.current[id] = setTimeout(() => {
+      setToasts(t => t.filter(x => x.id !== id));
+      delete timers.current[id];
+    }, duration || defaultDuration);
+  }, [clearToastTimer]);
 
   // Nettoyage de tous les timers au démontage (évite les setState sur composant mort)
   useEffect(() => {
@@ -107,29 +123,100 @@ function ToastProvider({ children }) {
   }, []);
 
   const push = useCallback((msg, type = "success") => {
-    const id = Date.now() + Math.random();
-    setToasts(t => [...t, { id, msg, type }]);
-    timers.current[id] = setTimeout(() => {
-      setToasts(t => t.filter(x => x.id !== id));
-      delete timers.current[id];
-    }, 2800);
-  }, []);
+    const payload = typeof msg === "string"
+      ? { title: msg, type }
+      : { ...msg, type: msg.type || type };
+    const groupKey = payload.groupKey || `${payload.type}|${payload.title || ""}|${payload.subtitle || ""}`;
+    const duration = payload.duration || defaultDuration;
+
+    setToasts(prev => {
+      const existing = prev.find(t => t.groupKey === groupKey);
+      if (existing) {
+        const merged = prev.map(t => t.id === existing.id ? {
+          ...t,
+          ...payload,
+          groupKey,
+          count: (t.count || 1) + 1,
+          duration,
+        } : t);
+        scheduleToastRemoval(existing.id, duration);
+        return merged;
+      }
+      const id = Date.now() + Math.random();
+      const created = { id, ...payload, groupKey, count: 1, duration };
+      scheduleToastRemoval(id, duration);
+      return [...prev, created];
+    });
+  }, [scheduleToastRemoval]);
 
   return (
     <ToastCtx.Provider value={{ push }}>
       {children}
       <div style={{
-        position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)",
-        zIndex: 9999, display: "flex", flexDirection: "column", alignItems: "center",
-        gap: 8, pointerEvents: "none"
+        position: "fixed", bottom: 88, right: 14,
+        zIndex: 9999, display: "flex", flexDirection: "column", alignItems: "flex-end",
+        gap: 10, pointerEvents: "none", width: "min(92vw, 360px)"
       }}>
         {toasts.map(t => (
           <div key={t.id} className="toast-in" style={{
-            padding: "10px 18px", borderRadius: 12, color: "#fff", fontSize: 12, fontWeight: 700,
-            display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(0,0,0,.2)",
-            background: t.type === "error" ? "#ef4444" : t.type === "warn" ? "#f59e0b" : "#10b981"
+            width: "100%",
+            padding: 10,
+            borderRadius: 14,
+            color: "#0F172A",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            boxShadow: "0 12px 28px rgba(15,23,42,.16)",
+            border: "1px solid #E2E8F0",
+            background: "#fff",
+            pointerEvents: "auto",
+            position: "relative",
+            overflow: "hidden"
           }}>
-            {t.type === "error" ? "✕" : t.type === "warn" ? "⚠" : "✓"} {t.msg}
+            {t.image && (
+              <img
+                src={t.image}
+                alt={t.title || "Produit"}
+                style={{ width: 44, height: 44, borderRadius: 10, objectFit: "cover", flexShrink: 0, border: "1px solid #E2E8F0" }}
+                onError={e => { e.currentTarget.style.display = "none"; }}
+              />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 800, color: t.type === "error" ? "#DC2626" : t.type === "warn" ? "#B45309" : "#0F172A", marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {t.title || "Notification"} {t.count > 1 ? `x${t.count}` : ""}
+              </p>
+              {t.subtitle && (
+                <p style={{ fontSize: 11, color: "#64748B", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {t.subtitle}
+                </p>
+              )}
+              {t.price && (
+                <p style={{ fontSize: 11, color: BLUE, fontWeight: 700, marginTop: 2 }}>{t.price}</p>
+              )}
+            </div>
+            {t.actionLabel && typeof t.action === "function" && (
+              <button
+                onClick={t.action}
+                style={{ border: "none", background: "#EFF6FF", color: BLUE, fontSize: 11, fontWeight: 700, padding: "8px 10px", borderRadius: 10, minHeight: "auto" }}
+              >
+                {t.actionLabel}
+              </button>
+            )}
+            <span style={{ fontSize: 16, flexShrink: 0 }}>
+              {t.type === "error" ? "✕" : t.type === "warn" ? "⚠" : "✓"}
+            </span>
+            <span
+              style={{
+                position: "absolute",
+                left: 0,
+                bottom: 0,
+                height: 3,
+                width: "100%",
+                background: t.type === "error" ? "#FCA5A5" : t.type === "warn" ? "#FCD34D" : "#93C5FD",
+                transformOrigin: "left",
+                animation: `toastProgress ${t.duration || defaultDuration}ms linear forwards`,
+              }}
+            />
           </div>
         ))}
       </div>

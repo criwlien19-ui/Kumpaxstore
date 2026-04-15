@@ -26,8 +26,9 @@ module.exports = (orderService) => {
       if (!delivery || !Array.isArray(items) || !items.length) {
         return res.status(400).json({ success: false, error: "delivery et items (non vide) sont requis" });
       }
-      if (!delivery.prenom || !delivery.telephone || !delivery.adresse) {
-        return res.status(400).json({ success: false, error: "Champs livraison incomplets (prenom, telephone, adresse requis)" });
+      const customerName = (delivery.nomComplet || delivery.prenom || "").trim();
+      if (!customerName || !delivery.telephone || !delivery.adresse) {
+        return res.status(400).json({ success: false, error: "Champs livraison incomplets (nomComplet/prenom, telephone, adresse requis)" });
       }
       // Valide le numéro de téléphone (9 chiffres)
       const phone = delivery.telephone.replace(/\s/g, "");
@@ -44,7 +45,21 @@ module.exports = (orderService) => {
         return res.status(400).json({ success: false, error: `payProvider invalide. Valeurs autorisées : ${VALID_PROVIDERS.join(", ")}` });
       }
 
-      const result = await orderService.createOrder({ delivery, items, payMethod, deliveryMode, payProvider, note });
+      // Compatibilité ascendante/descendante: normalise le nom client pour le service Odoo
+      const normalizedDelivery = {
+        ...delivery,
+        prenom: customerName,
+        nomComplet: customerName,
+      };
+
+      const result = await orderService.createOrder({
+        delivery: normalizedDelivery,
+        items,
+        payMethod,
+        deliveryMode,
+        payProvider,
+        note,
+      });
       res.json({ success: true, data: result });
     } catch (err) {
       console.error("[POST /orders]", err.message);

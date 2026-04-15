@@ -8,6 +8,10 @@ const DARK_BLUE = "#0F4C81";
 const grad = `linear-gradient(135deg,${BLUE},${DARK_BLUE})`;
 const PLACEHOLDER = "https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=400&q=80";
 
+// ── Typographie ──
+const FONT_HEADING = "'Space Grotesk', sans-serif";
+const FONT_BODY = "'DM Sans', sans-serif";
+
 // ── Modes de livraison ──
 const DELIVERY_MODES = [
   { id: "home",  label: "Livraison à domicile", icon: "🏠", desc: "Reçu en 24–48h à votre adresse" },
@@ -73,3 +77,53 @@ const INIT_ORDERS = [
 
 // ── Formatage prix ──
 const fmt = p => p.toLocaleString("fr-FR") + " FCFA";
+
+// ── Promotions helpers ──
+function getPromotionForProduct(product, promotions = []) {
+  if (!product || !promotions?.length) return null;
+  const price = Number(product.price || 0);
+  if (!(price > 0)) return null;
+
+  const applicable = promotions.filter(promo => {
+    if (!promo || !promo.active) return false;
+    if (promo.scope === "category") return promo.category && promo.category === product.cat;
+    if (promo.scope === "products") return Array.isArray(promo.productIds) && promo.productIds.includes(product.id);
+    return true;
+  });
+
+  if (!applicable.length) return null;
+
+  let best = null;
+  let bestSavings = 0;
+  applicable.forEach(promo => {
+    const value = Number(promo.discountValue || 0);
+    if (!(value > 0)) return;
+    const savings = promo.discountType === "amount" ? value : (price * value) / 100;
+    if (savings > bestSavings) {
+      bestSavings = savings;
+      best = promo;
+    }
+  });
+  return best;
+}
+
+function getDiscountedPricing(product, promotions = []) {
+  const promo = getPromotionForProduct(product, promotions);
+  const basePrice = Number(product?.price || 0);
+  if (!promo || !(basePrice > 0)) {
+    return { price: basePrice, orig: product?.orig || null, promo: null };
+  }
+
+  const discountValue = Number(promo.discountValue || 0);
+  const rawPrice = promo.discountType === "amount"
+    ? basePrice - discountValue
+    : basePrice - ((basePrice * discountValue) / 100);
+  const finalPrice = Math.max(0, Math.round(rawPrice));
+  const hasDiscount = finalPrice < basePrice;
+
+  return {
+    price: hasDiscount ? finalPrice : basePrice,
+    orig: hasDiscount ? basePrice : (product?.orig || null),
+    promo: hasDiscount ? promo : null,
+  };
+}

@@ -23,6 +23,25 @@
 const express = require("express");
 const router  = express.Router();
 const { checkCredentials, generateToken, verifyAdminJWT } = require("./admin.auth");
+const { normalizePromo, readPromotions, writePromotions } = require("./promotions.store");
+
+function validatePromotionWindow(promo) {
+  const hasStart = !!promo.startAt;
+  const hasEnd = !!promo.endAt;
+  const startTime = hasStart ? new Date(promo.startAt).getTime() : null;
+  const endTime = hasEnd ? new Date(promo.endAt).getTime() : null;
+
+  if (hasStart && Number.isNaN(startTime)) {
+    return "Date de début invalide.";
+  }
+  if (hasEnd && Number.isNaN(endTime)) {
+    return "Date de fin invalide.";
+  }
+  if (hasStart && hasEnd && startTime > endTime) {
+    return "La date de fin doit être après la date de début.";
+  }
+  return null;
+}
 
 module.exports = (odoo, productService, orderService) => {
 
@@ -170,6 +189,29 @@ module.exports = (odoo, productService, orderService) => {
       });
 
       res.json({ success: true, data: products, count: products.length });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // GET /api/admin/products/min — Liste légère pour sélecteurs
+  // ══════════════════════════════════════════════════════════
+  router.get("/products/min", async (req, res) => {
+    try {
+      const { search = "", limit = 500 } = req.query;
+      const domain = [["active", "=", true]];
+      if (search) domain.push(["name", "ilike", search]);
+
+      const products = await odoo.searchRead({
+        model: "product.template",
+        domain,
+        fields: ["id", "name", "list_price", "categ_id"],
+        limit: Math.min(parseInt(limit) || 500, 1000),
+        order: "name asc",
+      });
+
+      res.json({ success: true, data: products });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -450,6 +492,78 @@ module.exports = (odoo, productService, orderService) => {
         order: "name asc",
       });
       res.json({ success: true, data: cats });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // Promotions (CRUD) — stockage JSON local
+  // ══════════════════════════════════════════════════════════
+  router.get("/promotions", async (req, res) => {
+    try {
+      const promotions = await readPromotions();
+      promotions.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      res.json({ success: true, data: promotions });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  router.post("/promotions", async (req, res) => {
+    try {
+      const promo = normalizePromo(req.body || {});
+      if (!promo.title) return res.status(400).json({ success: false, error: "Le titre de la promotion est obligatoire." });
+      if (!(promo.discountValue > 0)) return res.status(400).json({ success: false, error: "La réduction doit être supérieure à 0." });
+      if (promo.discountType === "percent" && promo.discountValue > 100) {
+        return res.status(400).json({ success: false, error: "La réduction en pourcentage ne peut pas dépasser 100%." });
+      }
+      const windowError = validatePromotionWindow(promo);
+      if (windowError) return res.status(400).json({ success: false, error: windowError });
+
+      const list = await readPromotions();
+      list.unshift(promo);
+      await writePromotions(list);
+      res.json({ success: true, data: promo });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  router.patch("/promotions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const list = await readPromotions();
+      const idx = list.findIndex(p => p.id === id);
+      if (idx < 0) return res.status(404).json({ success: false, error: "Promotion introuvable." });
+
+      const merged = normalizePromo({ ...list[idx], ...req.body, id: list[idx].id, createdAt: list[idx].createdAt });
+      if (!merged.title) return res.status(400).json({ success: false, error: "Le titre de la promotion est obligatoire." });
+      if (!(merged.discountValue > 0)) return res.status(400).json({ success: false, error: "La réduction doit être supérieure à 0." });
+      if (merged.discountType === "percent" && merged.discountValue > 100) {
+        return res.status(400).json({ success: false, error: "La réduction en pourcentage ne peut pas dépasser 100%." });
+      }
+      const windowError = validatePromotionWindow(merged);
+      if (windowError) return res.status(400).json({ success: false, error: windowError });
+
+      list[idx] = merged;
+      await writePromotions(list);
+      res.json({ success: true, data: merged });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  router.delete("/promotions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const list = await readPromotions();
+      const next = list.filter(p => p.id !== id);
+      if (next.length === list.length) {
+        return res.status(404).json({ success: false, error: "Promotion introuvable." });
+      }
+      await writePromotions(next);
+      res.json({ success: true, data: { id, deleted: true } });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }

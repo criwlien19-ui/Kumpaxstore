@@ -1,0 +1,14 @@
+{
+  "name": "Kumpax Store",
+  "short_name": "Kumpax",
+  "icons": [
+    {
+      "src": "assets/favicon-store.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#1E40AF",
+  "background_color": "#F8FAFC",
+  "display": "standalone"
+}

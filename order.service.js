@@ -14,8 +14,11 @@ class OrderService {
   /**
    * Trouve un client par téléphone, ou le crée s'il n'existe pas
    */
-  async findOrCreatePartner({ prenom, telephone, adresse }) {
-    const fullName = prenom.trim();
+  async findOrCreatePartner({ prenom, nomComplet, telephone, adresse }) {
+    const fullName = (nomComplet || prenom || "").trim();
+    if (!fullName) {
+      throw new Error("Nom client requis pour créer le partenaire Odoo");
+    }
     const cleanPhone = telephone.replace(/\s/g, "");
     const fullPhone = cleanPhone.startsWith("+221")
       ? cleanPhone

@@ -9,26 +9,48 @@
 const { API_URL, USE_ODOO } = window;
 
 const api = {
+  async _request(url, options = {}) {
+    try {
+      const r = await fetch(url, options);
+      const raw = await r.text();
+      let data = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = null;
+      }
+
+      if (!r.ok) {
+        return {
+          success: false,
+          error: data?.error || data?.message || `Erreur HTTP ${r.status}`,
+          status: r.status,
+        };
+      }
+      if (data && typeof data === "object") return data;
+      return { success: true, data: data ?? {} };
+    } catch (e) {
+      return { success: false, error: e.message || "Erreur réseau" };
+    }
+  },
+
   // Récupère les produits (avec filtres optionnels)
   async getProducts(params = {}) {
     if (!USE_ODOO) return { success: true, data: PRODS };
     const qs = new URLSearchParams(params).toString();
-    const r = await fetch(`${API_URL}/api/products${qs ? "?" + qs : ""}`);
-    return r.json();
+    return this._request(`${API_URL}/api/products${qs ? "?" + qs : ""}`);
   },
 
   // Récupère les catégories depuis Odoo
   async getCategories() {
     if (!USE_ODOO) return { success: true, data: CATS };
-    const r = await fetch(`${API_URL}/api/products/categories`);
-    return r.json();
+    return this._request(`${API_URL}/api/products/categories`);
   },
 
   // Récupère un produit par ID
   async getProduct(id) {
     if (!USE_ODOO) return { success: true, data: PRODS.find(p => p.id === id) || null };
-    const r = await fetch(`${API_URL}/api/products/${id}`);
-    return r.json();
+    return this._request(`${API_URL}/api/products/${id}`);
   },
 
   // Crée une commande dans Odoo
@@ -38,31 +60,28 @@ const api = {
       await new Promise(r => setTimeout(r, 900));
       return { success: true, data: { orderName: `S${Math.floor(Math.random() * 90000 + 10000)}`, status: "sale" } };
     }
-    const r = await fetch(`${API_URL}/api/orders`, {
+    return this._request(`${API_URL}/api/orders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    return r.json();
   },
 
   // Récupère les commandes (admin)
   async getOrders(params = {}) {
     if (!USE_ODOO) return { success: true, data: INIT_ORDERS };
     const qs = new URLSearchParams(params).toString();
-    const r = await fetch(`${API_URL}/api/orders${qs ? "?" + qs : ""}`);
-    return r.json();
+    return this._request(`${API_URL}/api/orders${qs ? "?" + qs : ""}`);
   },
 
   // Met à jour le statut d'une commande (admin)
   async updateOrderStatus(id, state) {
     if (!USE_ODOO) return { success: true };
-    const r = await fetch(`${API_URL}/api/orders/${id}/status`, {
+    return this._request(`${API_URL}/api/orders/${id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ state }),
     });
-    return r.json();
   },
 
   // Vérifie la connexion Odoo
@@ -76,8 +95,11 @@ const api = {
   // Récupère les commandes d'un client par son téléphone
   async getCustomerOrders(phone) {
     if (!USE_ODOO) return { success: true, data: [] };
-    const r = await fetch(`${API_URL}/api/orders/customer/${phone}`);
-    return r.json();
+    return this._request(`${API_URL}/api/orders/customer/${phone}`);
+  },
+
+  async getActivePromotions() {
+    return this._request(`${API_URL}/api/promotions/active`);
   },
 
   // ══════════════════════════════════════════════════════════
@@ -94,12 +116,11 @@ const api = {
   },
 
   async adminLogin(username, password) {
-    const r = await fetch(`${API_URL}/api/admin/login`, {
+    const data = await this._request(`${API_URL}/api/admin/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
     });
-    const data = await r.json();
     if (data.success && data.token) {
       sessionStorage.setItem("admin_token", data.token);
     }
@@ -111,75 +132,108 @@ const api = {
   },
 
   async adminGetStats() {
-    const r = await fetch(`${API_URL}/api/admin/stats`, { headers: this._getAdminHeaders() });
-    return r.json();
+    return this._request(`${API_URL}/api/admin/stats`, { headers: this._getAdminHeaders() });
   },
 
   async adminGetSalesChart(days = 30) {
-    const r = await fetch(`${API_URL}/api/admin/sales-chart?days=${days}`, { headers: this._getAdminHeaders() });
-    return r.json();
+    return this._request(`${API_URL}/api/admin/sales-chart?days=${days}`, { headers: this._getAdminHeaders() });
   },
 
   async adminGetProducts(search = "", limit = 200, offset = 0) {
     const qs = new URLSearchParams({ search, limit, offset }).toString();
-    const r = await fetch(`${API_URL}/api/admin/products?${qs}`, { headers: this._getAdminHeaders() });
-    return r.json();
+    return this._request(`${API_URL}/api/admin/products?${qs}`, { headers: this._getAdminHeaders() });
+  },
+
+  async adminGetProductsLite(search = "", limit = 500) {
+    const qs = new URLSearchParams({ search, limit }).toString();
+    const lite = await this._request(`${API_URL}/api/admin/products/min?${qs}`, { headers: this._getAdminHeaders() });
+    if (lite.success) return lite;
+    // Fallback robuste si route non redémarrée ou indisponible
+    return this.adminGetProducts(search, limit, 0);
   },
 
   async adminCreateProduct(payload) {
-    const r = await fetch(`${API_URL}/api/admin/products`, {
+    return this._request(`${API_URL}/api/admin/products`, {
       method: "POST",
       headers: this._getAdminHeaders(),
       body: JSON.stringify(payload)
     });
-    return r.json();
   },
 
   async adminUpdateProduct(id, payload) {
-    const r = await fetch(`${API_URL}/api/admin/products/${id}`, {
+    return this._request(`${API_URL}/api/admin/products/${id}`, {
       method: "PATCH",
       headers: this._getAdminHeaders(),
       body: JSON.stringify(payload)
     });
-    return r.json();
   },
 
   async adminArchiveProduct(id) {
-    const r = await fetch(`${API_URL}/api/admin/products/${id}`, {
+    return this._request(`${API_URL}/api/admin/products/${id}`, {
       method: "DELETE",
       headers: this._getAdminHeaders()
     });
-    return r.json();
   },
 
   async adminUpdateStock(id, quantity) {
-    const r = await fetch(`${API_URL}/api/admin/stock/${id}`, {
+    return this._request(`${API_URL}/api/admin/stock/${id}`, {
       method: "PATCH",
       headers: this._getAdminHeaders(),
       body: JSON.stringify({ quantity })
     });
-    return r.json();
   },
 
   async adminGetOrders(state = "all", limit = 100, offset = 0) {
     const qs = new URLSearchParams({ state, limit, offset }).toString();
-    const r = await fetch(`${API_URL}/api/admin/orders?${qs}`, { headers: this._getAdminHeaders() });
-    return r.json();
+    return this._request(`${API_URL}/api/admin/orders?${qs}`, { headers: this._getAdminHeaders() });
   },
 
   async adminUpdateOrderStatus(id, state) {
-    const r = await fetch(`${API_URL}/api/admin/orders/${id}/status`, {
+    return this._request(`${API_URL}/api/admin/orders/${id}/status`, {
       method: "PATCH",
       headers: this._getAdminHeaders(),
       body: JSON.stringify({ state })
     });
-    return r.json();
+  },
+
+  async adminUpdateOrderInvoiceReference(id, invoiceReference) {
+    return this._request(`${API_URL}/api/admin/orders/${id}/invoice-reference`, {
+      method: "PATCH",
+      headers: this._getAdminHeaders(),
+      body: JSON.stringify({ invoiceReference })
+    });
   },
 
   async adminGetCustomers(search = "", limit = 200) {
     const qs = new URLSearchParams({ search, limit }).toString();
-    const r = await fetch(`${API_URL}/api/admin/customers?${qs}`, { headers: this._getAdminHeaders() });
-    return r.json();
+    return this._request(`${API_URL}/api/admin/customers?${qs}`, { headers: this._getAdminHeaders() });
+  },
+
+  async adminGetPromotions() {
+    return this._request(`${API_URL}/api/admin/promotions`, { headers: this._getAdminHeaders() });
+  },
+
+  async adminCreatePromotion(payload) {
+    return this._request(`${API_URL}/api/admin/promotions`, {
+      method: "POST",
+      headers: this._getAdminHeaders(),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async adminUpdatePromotion(id, payload) {
+    return this._request(`${API_URL}/api/admin/promotions/${id}`, {
+      method: "PATCH",
+      headers: this._getAdminHeaders(),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async adminDeletePromotion(id) {
+    return this._request(`${API_URL}/api/admin/promotions/${id}`, {
+      method: "DELETE",
+      headers: this._getAdminHeaders(),
+    });
   },
 };
 
