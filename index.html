@@ -48,7 +48,8 @@
     window.USE_ODOO = true;
     const hostname = window.location.hostname;
     const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
-    window.API_URL = isLocal ? "http://" + hostname + ":3001" : "https://api.kumpax.sn";
+    // In production, call the co-deployed API on the same origin.
+    window.API_URL = isLocal ? "http://" + hostname + ":3001" : window.location.origin;
   </script>
 
   <!--
