@@ -9,6 +9,17 @@
 const { API_URL, USE_ODOO } = window;
 
 const api = {
+  _mapNetworkError(error) {
+    const msg = String(error?.message || "").toLowerCase();
+    if (msg.includes("failed to fetch")) {
+      return "Impossible de contacter le serveur. Vérifiez que l'API est démarrée et que le domaine est autorisé (CORS).";
+    }
+    if (msg.includes("networkerror")) {
+      return "Erreur réseau. Vérifiez votre connexion internet.";
+    }
+    return error?.message || "Erreur réseau";
+  },
+
   async _request(url, options = {}) {
     try {
       const r = await fetch(url, options);
@@ -21,16 +32,23 @@ const api = {
       }
 
       if (!r.ok) {
+        const rawError = data?.error || data?.message || `Erreur HTTP ${r.status}`;
+        let userError = rawError;
+        if (r.status === 401) userError = "Session expirée ou accès non autorisé.";
+        else if (r.status === 403) userError = "Accès refusé (CORS / permissions).";
+        else if (r.status >= 500) userError = "Le serveur a rencontré une erreur. Réessayez dans un instant.";
+
         return {
           success: false,
-          error: data?.error || data?.message || `Erreur HTTP ${r.status}`,
+          error: userError,
+          technicalError: rawError,
           status: r.status,
         };
       }
       if (data && typeof data === "object") return data;
       return { success: true, data: data ?? {} };
     } catch (e) {
-      return { success: false, error: e.message || "Erreur réseau" };
+      return { success: false, error: this._mapNetworkError(e) };
     }
   },
 
@@ -133,6 +151,14 @@ const api = {
 
   async adminGetStats() {
     return this._request(`${API_URL}/api/admin/stats`, { headers: this._getAdminHeaders() });
+  },
+
+  async adminValidateSession() {
+    return this._request(`${API_URL}/api/admin/me`, { headers: this._getAdminHeaders() });
+  },
+
+  async adminHealthCheck() {
+    return this._request(`${API_URL}/api/admin/health`, { headers: this._getAdminHeaders() });
   },
 
   async adminGetSalesChart(days = 30) {

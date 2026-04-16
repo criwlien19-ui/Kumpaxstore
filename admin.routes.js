@@ -68,6 +68,31 @@ module.exports = (odoo, productService, orderService) => {
   // ── Toutes les routes suivantes sont protégées par JWT ────
   router.use(verifyAdminJWT);
 
+  // Validation légère de session admin (n'appelle pas Odoo)
+  router.get("/me", async (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        username: req.adminUser || "admin",
+        role: "admin",
+      },
+    });
+  });
+
+  // Health admin (inclut la santé Odoo)
+  router.get("/health", async (req, res) => {
+    try {
+      await odoo.authenticate();
+      res.json({ success: true, data: { odoo: "connected" } });
+    } catch (err) {
+      res.status(503).json({
+        success: false,
+        error: "Connexion Odoo indisponible",
+        details: err.message,
+      });
+    }
+  });
+
   // ══════════════════════════════════════════════════════════
   // GET /api/admin/stats — KPIs globaux
   // ══════════════════════════════════════════════════════════

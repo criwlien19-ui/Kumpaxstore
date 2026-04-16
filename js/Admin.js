@@ -21,7 +21,7 @@ function Admin({ onExit }) {
     if (!sessionStorage.getItem("admin_token")) return;
     (async () => {
       try {
-        const res = await window.api.adminGetStats();
+        const res = await window.api.adminValidateSession();
         if (!res.success) {
           window.api.adminLogout();
           setAuth(false);
@@ -46,10 +46,10 @@ function Admin({ onExit }) {
         setAuth(true);
         push("Bienvenue, " + res.username);
       } else {
-        push(res.error || "Identifiants incorrects", "error");
+        push(res.error || res.technicalError || "Identifiants incorrects", "error");
       }
     } catch (err) {
-      push("Impossible de se connecter au serveur", "error");
+      push("Impossible de se connecter au serveur admin", "error");
     } finally {
       setLoading(false);
     }

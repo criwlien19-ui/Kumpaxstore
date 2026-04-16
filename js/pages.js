@@ -780,8 +780,10 @@ function Checkout({ go }) {
       if (res.success) {
         orderId.current = res.data?.orderName;
         dispatch({ type: "CLEAR" }); setDone(true); push("Commande enregistrée ! 🎉");
-      } else { push(res.error || "Erreur lors de la commande", "error"); }
-    } catch (e) { push("Erreur réseau : " + e.message, "error"); }
+      } else {
+        push(res.error || res.technicalError || "Erreur lors de la commande", "error");
+      }
+    } catch (e) { push("Erreur réseau : " + (e?.message || "inconnue"), "error"); }
     finally { setSubmitting(false); }
   };
 

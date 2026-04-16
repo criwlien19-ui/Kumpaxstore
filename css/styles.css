@@ -235,7 +235,19 @@ h1, h2, h3, h4, h5, h6 {
 }
 .bottom-nav-item.active { color: var(--blue) }
 .bottom-nav-item span.icon { font-size: 21px; line-height: 1 }
-.bottom-nav-item span.label { font-size: 10px; font-weight: 600; font-family: var(--font-body) }
+.bottom-nav-item span.label {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  /* Le label utilise la classe .label (uppercase + letter-spacing) globalement.
+     Sur mobile, ça peut pousser le texte hors de la cellule -> on neutralise le letter-spacing. */
+  text-transform: uppercase;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+}
 
 /* Cart badge on bottom nav */
 .bottom-nav-badge {

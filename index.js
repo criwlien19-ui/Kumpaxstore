@@ -38,19 +38,72 @@ const limiter = rateLimit({
 app.use("/api", limiter);
 
 // ── Middlewares ────────────────────────────────────────────
-const allowedOrigins = (process.env.FRONTEND_URL || "").split(",").map(o => o.trim());
-app.use(cors({
-  origin: (origin, callback) => {
-    // Autorise les requêtes sans origine (comme mobile apps ou curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS: Origine non autorisée par la politique de sécurité de Kumpax."));
-    }
-  },
-  methods: ["GET", "POST", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+const envOrigins = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+const defaultOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
+];
+
+// CORS robuste : on autorise si l'origine (protocole inclus) correspond,
+// ou si le hostname correspond (ex: http vs https, ou URL sans schéma).
+const allowedOrigins = new Set([...defaultOrigins, ...envOrigins]);
+const allowAllOrigins = allowedOrigins.has("*");
+const allowedHosts = new Set();
+const allowedHostSuffixes = new Set(); // ex: "*.kumpax.sn" => suffix "kumpax.sn"
+
+for (const entry of allowedOrigins) {
+  if (!entry || entry === "*") continue;
+  let host = entry;
+  try {
+    if (entry.includes("://")) host = new URL(entry).host; // inclut éventuellement le port
+  } catch {
+    // Fallback: l'entrée est peut-être juste un hostname (ex: "kumpax.sn")
+  }
+  if (host.startsWith("*.")) allowedHostSuffixes.add(host.slice(2));
+  else allowedHosts.add(host);
+}
+
+app.use(cors((req, callback) => {
+  const origin = req.header("Origin");
+
+  const corsOptions = {
+    origin: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  };
+
+  // Autorise les requêtes sans origine (mobile apps, curl, serveur à serveur).
+  if (!origin) return callback(null, corsOptions);
+
+  // Si FRONTEND_URL n'est pas configuré, autorise en local/dev par défaut.
+  if (!envOrigins.length) return callback(null, corsOptions);
+
+  // 1) Match exact sur l'origine complète (protocol + host + port)
+  if (allowAllOrigins || allowedOrigins.has(origin)) return callback(null, corsOptions);
+
+  // 2) Match sur hostname (ignore http/https)
+  let originHost = origin;
+  let originHostname = origin;
+  try {
+    const originUrl = new URL(origin);
+    originHost = originUrl.host; // inclut éventuellement le port
+    originHostname = originUrl.hostname;
+  } catch {
+    // origin invalide => on laisse échouer le CORS ci-dessous
+  }
+  if (allowedHosts.has(originHost)) return callback(null, corsOptions);
+
+  // 3) Wildcards en suffix (ex: "*.kumpax.sn")
+  for (const suffix of allowedHostSuffixes) {
+    if (originHostname === suffix || originHostname.endsWith("." + suffix)) return callback(null, corsOptions);
+  }
+
+  return callback(new Error("CORS: Origine non autorisée par la politique de sécurité de Kumpax."));
 }));
 app.use(express.json({ limit: "1mb" })); // taille max body
 

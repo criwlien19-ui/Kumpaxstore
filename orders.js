@@ -17,6 +17,30 @@ const checkAdminAuth = (req, res, next) => {
 };
 
 module.exports = (orderService) => {
+  function normalizeItems(items) {
+    return items.map((item, index) => {
+      const id = Number(item?.id);
+      const qty = Number(item?.qty);
+      const price = Number(item?.price);
+      const name = String(item?.name || "").trim();
+
+      if (!Number.isFinite(id) || id <= 0) {
+        throw new Error(`Article #${index + 1}: identifiant produit invalide.`);
+      }
+      if (!name) {
+        throw new Error(`Article #${index + 1}: nom du produit manquant.`);
+      }
+      if (!Number.isFinite(qty) || qty <= 0) {
+        throw new Error(`Article #${index + 1}: quantité invalide.`);
+      }
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error(`Article #${index + 1}: prix invalide.`);
+      }
+
+      return { id, name, qty, price };
+    });
+  }
+
   // POST /api/orders  → crée un devis dans Odoo
   router.post("/", async (req, res) => {
     try {
@@ -44,6 +68,12 @@ module.exports = (orderService) => {
       if (payMethod === "online" && payProvider && !VALID_PROVIDERS.includes(payProvider)) {
         return res.status(400).json({ success: false, error: `payProvider invalide. Valeurs autorisées : ${VALID_PROVIDERS.join(", ")}` });
       }
+      let normalizedItems = [];
+      try {
+        normalizedItems = normalizeItems(items);
+      } catch (validationErr) {
+        return res.status(400).json({ success: false, error: validationErr.message });
+      }
 
       // Compatibilité ascendante/descendante: normalise le nom client pour le service Odoo
       const normalizedDelivery = {
@@ -54,7 +84,7 @@ module.exports = (orderService) => {
 
       const result = await orderService.createOrder({
         delivery: normalizedDelivery,
-        items,
+        items: normalizedItems,
         payMethod,
         deliveryMode,
         payProvider,

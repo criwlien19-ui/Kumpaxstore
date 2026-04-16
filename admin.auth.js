@@ -17,12 +17,20 @@ const ADMIN_HASH   = process.env.ADMIN_PASS_HASH;
 
 // ─── Vérifie les credentials ────────────────────────────────
 async function checkCredentials(username, password) {
-  if (username !== ADMIN_USER) return false;
-  if (!ADMIN_HASH) {
-    // Fallback de sécurité : comparaison directe au .env (non recommandé en prod)
-    return password === process.env.ADMIN_PASS_PLAIN;
+  const normalizedUser = String(username || "").trim();
+  const normalizedPass = String(password || "");
+  if (!normalizedUser || !normalizedPass) return false;
+
+  if (normalizedUser.toLowerCase() !== String(ADMIN_USER || "").trim().toLowerCase()) return false;
+
+  // Hash bcrypt prioritaire si bien configuré
+  if (ADMIN_HASH && /^\$2[aby]\$\d{2}\$/.test(ADMIN_HASH)) {
+    return bcrypt.compare(normalizedPass, ADMIN_HASH);
   }
-  return bcrypt.compare(password, ADMIN_HASH);
+
+  // Fallback explicite pour dépannage local
+  const plainFallback = process.env.ADMIN_PASS_PLAIN || process.env.ADMIN_PASS || "";
+  return normalizedPass === plainFallback;
 }
 
 // ─── Génère un JWT signé ─────────────────────────────────────

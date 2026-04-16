@@ -103,7 +103,21 @@ class OrderService {
     console.log(`[Order] Commande créée: id=${saleOrderId}`);
 
     // 4. Ajouter les lignes de commande
-    await this._createOrderLines(saleOrderId, items);
+    try {
+      await this._createOrderLines(saleOrderId, items);
+    } catch (lineErr) {
+      // Evite de laisser une commande incomplète dans Odoo si une ligne échoue.
+      try {
+        await this.odoo.execute({
+          model: "sale.order",
+          method: "action_cancel",
+          ids: [saleOrderId],
+        });
+      } catch (cancelErr) {
+        console.warn(`[Order] Impossible d'annuler la commande incomplète ${saleOrderId}: ${cancelErr.message}`);
+      }
+      throw lineErr;
+    }
 
     // 5. La commande reste en état Devis (draft) — pas de action_confirm
     //    L'équipe commerciale Odoo valide manuellement chaque devis.
@@ -135,13 +149,32 @@ class OrderService {
   async _createOrderLines(saleOrderId, items) {
     // Parallélisation : toutes les lignes créées simultanément
     await Promise.all(items.map(async (item) => {
+      const qty = Number(item.qty || 0);
+      const unitPrice = Number(item.price || 0);
+      if (!Number.isFinite(qty) || qty <= 0) {
+        throw new Error(`Quantité invalide pour ${item.name || "produit inconnu"}`);
+      }
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new Error(`Prix invalide pour ${item.name || "produit inconnu"}`);
+      }
+
       // Récupère le product.product (variante) depuis l'ID product.template
-      const variants = await this.odoo.searchRead({
+      let variants = await this.odoo.searchRead({
         model: "product.product",
         domain: [["product_tmpl_id", "=", item.id]],
         fields: ["id"],
         limit: 1,
       });
+
+      // Fallback: dans certains flux l'ID reçu peut déjà être un product.product
+      if (!variants.length && Number.isFinite(Number(item.id))) {
+        variants = await this.odoo.searchRead({
+          model: "product.product",
+          domain: [["id", "=", Number(item.id)]],
+          fields: ["id"],
+          limit: 1,
+        });
+      }
 
       if (!variants.length) {
         throw new Error(`Aucune variante (product.product) trouvée pour le template ID ${item.id} (${item.name})`);
@@ -154,8 +187,8 @@ class OrderService {
         values: {
           order_id: saleOrderId,
           product_id: productProductId,
-          product_uom_qty: item.qty,
-          price_unit: item.price,
+          product_uom_qty: qty,
+          price_unit: unitPrice,
           name: item.name,
         },
       });
