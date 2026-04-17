@@ -90,6 +90,18 @@ module.exports = (orderService) => {
         payProvider,
         note,
       });
+
+      // Notification par e-mail en arrière-plan
+      const emailService = require("./email.service");
+      emailService.sendOrderNotification({
+        delivery: normalizedDelivery,
+        items: normalizedItems,
+        payMethod,
+        deliveryMode,
+        payProvider,
+        note
+      }, result.orderName).catch(err => console.error("[POST /orders] Erreur notification email", err));
+
       res.json({ success: true, data: result });
     } catch (err) {
       console.error("[POST /orders]", err.message);

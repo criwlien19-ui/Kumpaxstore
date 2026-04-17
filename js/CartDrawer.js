@@ -10,7 +10,7 @@ function CartDrawer({ open, onClose, go }) {
     <>
       {/* Backdrop */}
       <div onClick={onClose} aria-hidden="true" style={{
-        position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", zIndex: 50,
+        position: "fixed", inset: 0, background: "rgba(15,23,42,.45)", zIndex: 109,
         opacity: open ? 1 : 0, pointerEvents: open ? "all" : "none",
         transition: "opacity .3s ease", backdropFilter: open ? "blur(4px)" : "none",
       }} />
@@ -69,7 +69,7 @@ function CartDrawer({ open, onClose, go }) {
 
         {/* Footer CTA */}
         {items.length > 0 && (
-          <div style={{ borderTop: "1px solid #F1F5F9", padding: "16px 20px", flexShrink: 0, paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+          <div className="cart-drawer-footer" style={{ borderTop: "1px solid #F1F5F9", padding: "16px 20px", flexShrink: 0, paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
               <span style={{ fontSize: 12, color: "#94A3B8", fontFamily: FONT_BODY }}>Livraison</span>
               <span style={{ fontSize: 12, color: "#059669", fontWeight: 700, fontFamily: FONT_BODY }}>Gratuite 🎉</span>

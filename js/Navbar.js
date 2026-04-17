@@ -153,15 +153,15 @@ function Navbar({ go, setCartOpen, q, setQ, categories = CATS }) {
 
         {/* Cart — central emphasis */}
         <button className="bottom-nav-item" onClick={() => setCartOpen(true)} aria-label={`Panier${count > 0 ? `, ${count} articles` : ""}`}
-          style={{ position: "relative" }}>
+          style={{ position: "relative", overflow: "visible" }}>
           <div style={{
-            width: 46, height: 46, borderRadius: "50%", background: grad,
+            width: 44, height: 44, borderRadius: "50%", background: grad,
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 22, marginTop: -16,
+            fontSize: 20, marginTop: -14,
             boxShadow: "0 4px 16px rgba(30,64,175,.3)",
           }}>🛒</div>
           {count > 0 && <span className="bottom-nav-badge" style={{ top: -2, right: "calc(50% - 18px)" }}>{count}</span>}
-          <span className="label" style={{ marginTop: 4 }}>Panier</span>
+          <span className="label" style={{ marginTop: 2, overflow: "visible" }}>Panier</span>
         </button>
       </nav>
     </>

@@ -226,12 +226,13 @@ h1, h2, h3, h4, h5, h6 {
   height: 100%;
   border: none;
   background: none;
-  padding: 8px 4px;
+  padding: 8px 2px;
   min-height: unset; /* override the global touch target – the bar itself provides it */
   cursor: pointer;
   color: var(--text-muted);
   transition: color var(--duration-fast);
   position: relative;
+  overflow: visible;
 }
 .bottom-nav-item.active { color: var(--blue) }
 .bottom-nav-item span.icon { font-size: 21px; line-height: 1 }
@@ -239,13 +240,10 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 10px;
   font-weight: 600;
   font-family: var(--font-body);
-  /* Le label utilise la classe .label (uppercase + letter-spacing) globalement.
-     Sur mobile, ça peut pousser le texte hors de la cellule -> on neutralise le letter-spacing. */
   text-transform: uppercase;
   letter-spacing: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   line-height: 1.1;
 }
 
@@ -640,8 +638,11 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
 /* Footer grid */
 .footer-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 480px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px }
 }
 @media (min-width: 900px) {
   .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px }
@@ -675,13 +676,20 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
   right: 0; top: 0; height: 100%;
   width: min(94vw, 360px);
   background: var(--card);
-  z-index: 51;
+  z-index: 110; /* Above bottom nav (100) and top-nav */
   display: flex; flex-direction: column;
   box-shadow: -12px 0 40px rgba(15,23,42,.12);
   transition: transform .35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .cart-drawer.closed  { transform: translateX(100%) }
 .cart-drawer.open    { transform: translateX(0) }
+
+/* On mobile, ensure cart footer clears the bottom nav */
+@media (max-width: 768px) {
+  .cart-drawer .cart-drawer-footer {
+    padding-bottom: calc(var(--bottom-nav-h) + 16px + env(safe-area-inset-bottom)) !important;
+  }
+}
 
 /* ══════════════════════════════════════════════
    Promo Banner — diagonal clip
@@ -728,4 +736,100 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
   font-family: var(--font-body); min-height: var(--touch-min);
   display: flex; align-items: center;
   padding: 0 4px;
+}
+
+/* ══════════════════════════════════════════════
+   Mobile Responsiveness Fixes
+   ══════════════════════════════════════════════ */
+
+/* Footer must clear bottom nav on mobile */
+footer[role="contentinfo"] {
+  padding-bottom: 0;
+}
+@media (max-width: 768px) {
+  footer[role="contentinfo"] {
+    padding-bottom: calc(var(--bottom-nav-h) + 10px);
+  }
+}
+
+/* Footer nav columns: prevent text overflow */
+footer nav p {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Promo banner responsive padding on mobile */
+@media (max-width: 480px) {
+  .promo-banner,
+  .grain[style*="border-radius: 28px"] {
+    padding: 24px 18px !important;
+    border-radius: 20px !important;
+  }
+}
+
+/* Product card price — prevent wrapping */
+@media (max-width: 400px) {
+  .card [style*="fontSize: 14"] {
+    font-size: 13px !important;
+  }
+}
+
+/* Product scroll: slightly wider items on very small screens */
+@media (max-width: 360px) {
+  .product-scroll-item { width: 145px }
+}
+
+/* Hero stats: safe on very small screens */
+@media (max-width: 380px) {
+  .hero-stats {
+    gap: 20px !important;
+  }
+}
+
+/* Checkout grid: ensure full width on mobile */
+@media (max-width: 768px) {
+  .checkout-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Catalog grid: ensure 2 columns minimum even on small screens */
+@media (max-width: 360px) {
+  .catalog-grid {
+    gap: 8px;
+  }
+}
+
+/* Toast position: above bottom nav on mobile */
+@media (max-width: 768px) {
+  [style*="position: fixed"][style*="bottom: 20px"] {
+    bottom: calc(var(--bottom-nav-h) + 12px) !important;
+  }
+}
+
+/* Fix text in product detail guarantee boxes on small screens */
+@media (max-width: 400px) {
+  .product-detail-grid [style*="gridTemplateColumns: repeat(3"] {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 6px !important;
+  }
+}
+
+/* Smooth focus transitions for all interactive elements */
+@media (prefers-reduced-motion: no-preference) {
+  .card,
+  .cat-chip,
+  .bottom-nav-item,
+  .nav-link,
+  .subcategory-pill,
+  button {
+    transition: all var(--duration-fast) ease;
+  }
+}
+
+/* Improve readability of footer grid on small-medium screens */
+@media (min-width: 480px) and (max-width: 899px) {
+  .footer-grid > *:first-child {
+    grid-column: 1 / -1;
+  }
 }

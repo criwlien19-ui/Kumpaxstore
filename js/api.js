@@ -34,7 +34,7 @@ const api = {
       if (!r.ok) {
         const rawError = data?.error || data?.message || `Erreur HTTP ${r.status}`;
         let userError = rawError;
-        if (r.status === 401) userError = "Session expirée ou accès non autorisé.";
+        if (r.status === 401 && !url.includes("/login")) userError = "Session expirée ou accès non autorisé.";
         else if (r.status === 403) userError = "Accès refusé (CORS / permissions).";
         else if (r.status >= 500) userError = "Le serveur a rencontré une erreur. Réessayez dans un instant.";
 

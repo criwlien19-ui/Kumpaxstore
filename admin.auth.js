@@ -25,7 +25,8 @@ async function checkCredentials(username, password) {
 
   // Hash bcrypt prioritaire si bien configuré
   if (ADMIN_HASH && /^\$2[aby]\$\d{2}\$/.test(ADMIN_HASH)) {
-    return bcrypt.compare(normalizedPass, ADMIN_HASH);
+    const isMatch = await bcrypt.compare(normalizedPass, ADMIN_HASH);
+    if (isMatch) return true;
   }
 
   // Fallback explicite pour dépannage local

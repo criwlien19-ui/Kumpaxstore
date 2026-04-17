@@ -60,6 +60,7 @@ function Footer({ go }) {
                 <p key={l} onClick={() => go("catalog")} style={{
                   fontSize: 13, color: "#64748B", marginBottom: 8, cursor: "pointer",
                   fontFamily: FONT_BODY, transition: "color 200ms",
+                  wordBreak: "break-word", overflowWrap: "break-word",
                 }}
                   onMouseEnter={e => e.currentTarget.style.color = "#FBBF24"}
                   onMouseLeave={e => e.currentTarget.style.color = "#64748B"}>
