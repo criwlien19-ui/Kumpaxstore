@@ -11,6 +11,26 @@
  * ============================================================
  */
 
+class MemoryCache {
+  constructor(ttlSeconds = 60) {
+    this.cache = new Map();
+    this.ttl = ttlSeconds * 1000;
+  }
+  get(key) {
+    const item = this.cache.get(key);
+    if (!item) return null;
+    if (Date.now() > item.expiry) {
+      this.cache.delete(key);
+      return null;
+    }
+    return item.value;
+  }
+  set(key, value) {
+    this.cache.set(key, { value, expiry: Date.now() + this.ttl });
+  }
+}
+const productCache = new MemoryCache(60); // Cache strict de 60 secondes
+
 // Mapping catégories Odoo → catégories Kumpax
 // Clé = nom catégorie dans Odoo, valeur = données UI Kumpax
 const CATEGORY_MAP = {
@@ -31,9 +51,9 @@ function mapProduct(odooProduct) {
     ? odooProduct.categ_id[1]
     : "Général";
 
-  // Transforme l'image base64 Odoo en data URL
-  const image = odooProduct.image_1920
-    ? `data:image/png;base64,${odooProduct.image_1920}`
+  // Transforme l'image base64 Odoo en data URL (image_512 ultra légère)
+  const image = odooProduct.image_512
+    ? `data:image/png;base64,${odooProduct.image_512}`
     : null;
 
   // Calcule le badge automatiquement selon le stock
@@ -106,7 +126,7 @@ const PRODUCT_FIELDS = [
   "description_sale",
   "description",
   "description_picking",  // utilisé pour les specs
-  "image_1920",
+  "image_512",
   "default_code",
   "uom_id",
   "currency_id",
@@ -124,6 +144,13 @@ class ProductService {
    * Liste les produits publiés et actifs
    */
   async list({ category = null, search = "", limit = 100, offset = 0 } = {}) {
+    const cacheKey = `list_${category}_${search}_${limit}_${offset}`;
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      console.log(`[Cache] HIT pour produits (cat=${category}, search=${search})`);
+      return cached;
+    }
+
     // On essaie d'être le plus large possible pour éviter l'absence de produits
     const domain = [
       ["type", "!=", "service"], 
@@ -145,7 +172,9 @@ class ProductService {
       order:  "name asc",
     });
 
-    return products.map(mapProduct);
+    const result = products.map(mapProduct);
+    productCache.set(cacheKey, result);
+    return result;
   }
 
   /**
@@ -166,30 +195,41 @@ class ProductService {
    * Liste les catégories avec compteur produits
    */
   async listCategories() {
-    // Récupère les catégories présentes dans les produits actifs
+    const cacheKey = "categories_list";
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      console.log(`[Cache] HIT pour catégories`);
+      return cached;
+    }
+
+    // Récupère les catégories existantes
     const cats = await this.odoo.searchRead({
       model:  "product.category",
       domain: [],
       fields: CATEGORY_FIELDS,
     });
 
-    // Compte les produits par catégorie
-    const counts = await Promise.all(
-      cats.map(async (cat) => {
-        const count = await this.odoo.callKw({
-          model: "product.template",
-          method: "search_count",
-          args: [[["categ_id", "=", cat.id], ["type", "!=", "service"]]],
-        });
-        return { id: cat.id, count };
-      })
-    );
+    // Utilisation de la méthode read_group en 1 seule requête optimisée !
+    const groups = await this.odoo.callKw({
+      model: "product.template",
+      method: "read_group",
+      args: [[["type", "!=", "service"]], ["categ_id"], ["categ_id"]],
+    });
 
-    const countMap = Object.fromEntries(counts.map(c => [c.id, c.count]));
+    // Construit un dictionnaire de comptage ultra rapide
+    const countMap = {};
+    for (const group of groups) {
+      if (group.categ_id && group.categ_id[0]) {
+        countMap[group.categ_id[0]] = group.categ_id_count;
+      }
+    }
 
-    return cats
+    const result = cats
       .filter(cat => countMap[cat.id] > 0)
       .map(cat => mapCategory(cat, countMap[cat.id]));
+      
+    productCache.set(cacheKey, result);
+    return result;
   }
 
   /**
