@@ -13,8 +13,8 @@ function App() {
   const [initCat, setInitCat] = useState("Tous");
 
   // État global produits & catégories (chargés une seule fois depuis Odoo/mock)
-  const [allProducts, setAllProducts] = useState(PRODS);
-  const [categories, setCategories] = useState(CATS);
+  const [allProducts, setAllProducts] = useState(window.USE_ODOO ? [] : PRODS);
+  const [categories, setCategories] = useState(window.USE_ODOO ? [] : CATS);
   const [dataLoading, setDataLoading] = useState(false);
   const [promotions, setPromotions] = useState([]);
 

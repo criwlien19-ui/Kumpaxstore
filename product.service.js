@@ -34,13 +34,13 @@ const productCache = new MemoryCache(60); // Cache strict de 60 secondes
 // Mapping catégories Odoo → catégories Kumpax
 // Clé = nom catégorie dans Odoo, valeur = données UI Kumpax
 const CATEGORY_MAP = {
-  "Smartphones":    { icon: "📱", color: "#EFF6FF", accent: "#1E40AF" },
-  "Vêtements":      { icon: "👕", color: "#F0FDF4", accent: "#166534" },
-  "Électroménager": { icon: "🏠", color: "#FFF7ED", accent: "#9A3412" },
-  "TV & Audio":     { icon: "📺", color: "#FDF4FF", accent: "#7E22CE" },
-  "Beauté":         { icon: "💄", color: "#FFF1F2", accent: "#BE123C" },
-  "Alimentation":   { icon: "🛒", color: "#F0FDFA", accent: "#0F766E" },
-  "All":            { icon: "🏪", color: "#F8FAFC", accent: "#64748B" },
+  "Smartphones":    { icon: "📱", bg: "#EFF6FF", accent: "#1E40AF" },
+  "Vêtements":      { icon: "👕", bg: "#F0FDF4", accent: "#166534" },
+  "Électroménager": { icon: "🏠", bg: "#FFF7ED", accent: "#9A3412" },
+  "TV & Audio":     { icon: "📺", bg: "#FDF4FF", accent: "#7E22CE" },
+  "Beauté":         { icon: "💄", bg: "#FFF1F2", accent: "#BE123C" },
+  "Alimentation":   { icon: "🛒", bg: "#F0FDFA", accent: "#0F766E" },
+  "All":            { icon: "🏪", bg: "#F8FAFC", accent: "#64748B" },
 };
 
 /**
@@ -105,7 +105,7 @@ function parseSpecs(descPickup) {
 function mapCategory(odooCategory, productCount = 0) {
   const uiData = CATEGORY_MAP[odooCategory.name] || {
     icon: "📦",
-    color: "#F8FAFC",
+    bg: "#F8FAFC",
     accent: "#64748B",
   };
   return {
