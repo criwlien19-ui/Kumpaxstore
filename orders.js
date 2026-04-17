@@ -91,16 +91,20 @@ module.exports = (orderService) => {
         note,
       });
 
-      // Notification par e-mail en arrière-plan
+      // Notification par e-mail (Doit être await sur Vercel, sinon le serveur s'arrête avant l'envoi !)
       const emailService = require("./email.service");
-      emailService.sendOrderNotification({
-        delivery: normalizedDelivery,
-        items: normalizedItems,
-        payMethod,
-        deliveryMode,
-        payProvider,
-        note
-      }, result.orderName).catch(err => console.error("[POST /orders] Erreur notification email", err));
+      try {
+        await emailService.sendOrderNotification({
+          delivery: normalizedDelivery,
+          items: normalizedItems,
+          payMethod,
+          deliveryMode,
+          payProvider,
+          note
+        }, result.orderName);
+      } catch (err) {
+        console.error("[POST /orders] Erreur notification email", err);
+      }
 
       res.json({ success: true, data: result });
     } catch (err) {
