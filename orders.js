@@ -91,7 +91,8 @@ module.exports = (orderService) => {
         note,
       });
 
-      // Notification par e-mail (Doit être await sur Vercel, sinon le serveur s'arrête avant l'envoi !)
+      // Notification par e-mail : il faut impérativement "await" sur Vercel 
+      // car la fonction Serverless se coupe dès le "res.json()"
       const emailService = require("./email.service");
       try {
         await emailService.sendOrderNotification({
