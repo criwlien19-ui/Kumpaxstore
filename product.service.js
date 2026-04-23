@@ -209,18 +209,18 @@ class ProductService {
       fields: CATEGORY_FIELDS,
     });
 
-    // Utilisation de la méthode read_group en 1 seule requête optimisée !
-    const groups = await this.odoo.callKw({
+    // Construit un dictionnaire de comptage des produits par catégorie
+    const products = await this.odoo.searchRead({
       model: "product.template",
-      method: "read_group",
-      args: [[["type", "!=", "service"]], ["categ_id"], ["categ_id"]],
+      domain: [["type", "!=", "service"], ["active", "=", true]],
+      fields: ["categ_id"],
+      limit: 5000
     });
 
-    // Construit un dictionnaire de comptage ultra rapide
     const countMap = {};
-    for (const group of groups) {
-      if (group.categ_id && group.categ_id[0]) {
-        countMap[group.categ_id[0]] = group.categ_id_count;
+    for (const p of products) {
+      if (p.categ_id && p.categ_id[0]) {
+        countMap[p.categ_id[0]] = (countMap[p.categ_id[0]] || 0) + 1;
       }
     }
 

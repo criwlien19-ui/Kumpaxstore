@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kumpax.store/sitemap.xml
+
+# Admin panel — private
+Disallow: /admin
+Disallow: /Admin
+Disallow: /api/

@@ -13,3 +13,19 @@ npm-debug.log*
 # ── OS ────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# AI Agent directories
+.agent/
+.claude/
+.codebuddy/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.github/prompts/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.trae/
+.windsurf/

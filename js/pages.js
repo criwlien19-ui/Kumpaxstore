@@ -191,6 +191,251 @@ function PromoPopup({ promotions = [], products = [], go }) {
 }
 
 // ══════════════════════════════════════════════
+// ── PROMO BANNER CAROUSEL (Dynamic) ──
+// ══════════════════════════════════════════════
+const PROMO_GRADIENTS = [
+  "linear-gradient(135deg, #043AF8 0%, #0a6fff 40%, #00F0FF 100%)",
+  "linear-gradient(135deg, #6D28D9 0%, #7C3AED 40%, #A78BFA 100%)",
+  "linear-gradient(135deg, #047857 0%, #059669 40%, #34D399 100%)",
+  "linear-gradient(135deg, #B91C1C 0%, #DC2626 40%, #F87171 100%)",
+  "linear-gradient(135deg, #B45309 0%, #D97706 40%, #FBBF24 100%)",
+];
+
+const PROMO_ICONS = ["🔥", "⚡", "🎉", "💎", "🛍️", "✨", "🚀", "💥"];
+
+function PromoBannerCarousel({ promotions = [], products = [], go }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [slideKey, setSlideKey] = useState(0);
+  const [countdowns, setCountdowns] = useState({});
+  const autoPlayRef = useRef(null);
+  const SLIDE_DURATION = 6000; // 6s per slide
+
+  // Filter only active promotions
+  const activePromos = promotions.filter(p => p.active);
+
+  // Auto-rotate slides
+  useEffect(() => {
+    if (activePromos.length <= 1) return;
+    autoPlayRef.current = setInterval(() => {
+      setActiveIdx(prev => (prev + 1) % activePromos.length);
+      setSlideKey(k => k + 1);
+    }, SLIDE_DURATION);
+    return () => clearInterval(autoPlayRef.current);
+  }, [activePromos.length]);
+
+  // Live countdown for each promo
+  useEffect(() => {
+    const tick = () => {
+      const c = {};
+      activePromos.forEach(p => {
+        if (!p.endAt) return;
+        const left = Math.max(0, Math.floor((new Date(p.endAt).getTime() - Date.now()) / 1000));
+        if (left > 0) {
+          const d = Math.floor(left / 86400);
+          const h = Math.floor((left % 86400) / 3600);
+          const m = Math.floor((left % 3600) / 60);
+          const s = left % 60;
+          c[p.id] = { d, h, m, s, total: left };
+        }
+      });
+      setCountdowns(c);
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [activePromos.length]);
+
+  const goToSlide = (i) => {
+    setActiveIdx(i);
+    setSlideKey(k => k + 1);
+    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    if (activePromos.length > 1) {
+      autoPlayRef.current = setInterval(() => {
+        setActiveIdx(prev => (prev + 1) % activePromos.length);
+        setSlideKey(k => k + 1);
+      }, SLIDE_DURATION);
+    }
+  };
+
+  const handlePromoClick = (promo) => {
+    if (promo.scope === "category" && promo.category) {
+      go("catalog", { cat: promo.category });
+    } else if (promo.scope === "products" && promo.productIds?.length) {
+      const target = products.find(p => promo.productIds.includes(p.id));
+      if (target) go("product", { product: target }); else go("catalog");
+    } else {
+      go("catalog");
+    }
+  };
+
+  // No active promos — show a stylish "explore" banner
+  if (activePromos.length === 0) {
+    return (
+      <div className="promo-empty grain">
+        <div style={{ position: "absolute", right: -50, bottom: -50, width: 200, height: 200, borderRadius: "50%", background: "rgba(4,58,248,0.12)" }} />
+        <div style={{ position: "absolute", left: -30, top: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(0,240,255,0.06)" }} />
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <p style={{ fontSize: 32, marginBottom: 10 }}>🛍️</p>
+          <h3 style={{ fontSize: "clamp(18px, 3vw, 24px)", fontWeight: 700, color: "#fff", fontFamily: FONT_HEADING, marginBottom: 8 }}>
+            Découvrez nos offres
+          </h3>
+          <p style={{ color: "rgba(255,255,255,.5)", fontSize: 13, fontFamily: FONT_BODY, marginBottom: 18 }}>
+            Des promotions exclusives arrivent bientôt !
+          </p>
+          <button className="promo-cta" onClick={() => go("catalog")}>
+            Explorer le catalogue →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const promo = activePromos[activeIdx % activePromos.length];
+  const cd = countdowns[promo.id];
+  const gradBg = PROMO_GRADIENTS[activeIdx % PROMO_GRADIENTS.length];
+  const icon = PROMO_ICONS[activeIdx % PROMO_ICONS.length];
+
+  // Find promo products for mini preview
+  const promoProducts = (promo.productIds || [])
+    .map(pid => products.find(p => p.id === pid))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const discountLabel = promo.discountType === "percent"
+    ? `-${promo.discountValue}%`
+    : `-${fmt(promo.discountValue)}`;
+
+  const scopeLabel = promo.scope === "category" && promo.category
+    ? `sur ${promo.category}`
+    : promo.scope === "products"
+      ? "sur une sélection"
+      : "sur tout le catalogue";
+
+  return (
+    <div className="promo-carousel">
+      <div key={slideKey} className="promo-card promo-slide-in" style={{ background: gradBg }}>
+        {/* Sparkle particles */}
+        <span className="promo-sparkle" />
+        <span className="promo-sparkle" />
+        <span className="promo-sparkle" />
+
+        {/* Decorative orbs */}
+        <div style={{ position: "absolute", right: -60, bottom: -60, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,.06)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: -35, top: -35, width: 140, height: 140, borderRadius: "50%", background: "rgba(251,191,36,.08)", pointerEvents: "none" }} />
+
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 24, position: "relative", zIndex: 3 }}>
+          {/* Left — text content */}
+          <div style={{ maxWidth: 520, flex: "1 1 300px" }}>
+            {/* Top row: badge + countdown */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+              <span style={{
+                fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em",
+                color: "#FBBF24", fontFamily: FONT_HEADING,
+                display: "inline-flex", alignItems: "center", gap: 5,
+              }}>
+                {icon} {promo.scope === "category" ? "Offre catégorie" : "Offre spéciale"} — Durée limitée
+              </span>
+              {cd && (
+                <span className="promo-countdown">
+                  ⏰
+                  {cd.d > 0 && <><span className="promo-countdown-digit">{cd.d}j</span></>}
+                  <span className="promo-countdown-digit">{String(cd.h).padStart(2,"0")}</span>
+                  <span style={{ opacity: 0.5 }}>:</span>
+                  <span className="promo-countdown-digit">{String(cd.m).padStart(2,"0")}</span>
+                  <span style={{ opacity: 0.5 }}>:</span>
+                  <span className="promo-countdown-digit">{String(cd.s).padStart(2,"0")}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Discount badge */}
+            <div style={{ marginBottom: 12 }}>
+              <span className="promo-discount-badge">{discountLabel}</span>
+            </div>
+
+            {/* Title */}
+            <h3 style={{
+              fontSize: "clamp(22px, 4.5vw, 34px)", fontWeight: 700, color: "#fff",
+              fontFamily: FONT_HEADING, letterSpacing: "-0.03em", lineHeight: 1.15, marginBottom: 8,
+            }}>
+              {promo.title || "Offre Flash"}
+              <span style={{ display: "block", fontSize: "0.65em", fontWeight: 500, color: "rgba(255,255,255,.7)", marginTop: 4 }}>
+                {scopeLabel}
+              </span>
+            </h3>
+
+            {/* Message */}
+            {promo.message && (
+              <p style={{ color: "rgba(255,255,255,.55)", fontSize: 14, fontFamily: FONT_BODY, lineHeight: 1.6, marginBottom: 6 }}>
+                {promo.message}
+              </p>
+            )}
+
+            {/* Mini product previews */}
+            {promoProducts.length > 0 && (
+              <div style={{ display: "flex", gap: 8, marginTop: 14, marginBottom: 6 }}>
+                {promoProducts.map(pp => (
+                  <button key={pp.id} onClick={(e) => { e.stopPropagation(); go("product", { product: pp }); }} style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "6px 12px 6px 6px", borderRadius: 12,
+                    background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.15)",
+                    backdropFilter: "blur(6px)", cursor: "pointer", minHeight: "auto",
+                    transition: "all 200ms",
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.22)"; e.currentTarget.style.transform = "translateY(-2px)" }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.12)"; e.currentTarget.style.transform = "none" }}>
+                    <SafeImg src={pp.img} alt={pp.name} style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }} />
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 80, fontFamily: FONT_BODY }}>{pp.name}</p>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: "#FBBF24", fontFamily: FONT_HEADING }}>{fmt(getDiscountedPricing(pp, [promo]).price)}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right — CTA */}
+          <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <button className="promo-cta" onClick={() => handlePromoClick(promo)}>
+              {promo.ctaLabel || "Profiter →"}
+            </button>
+            {cd && (
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,.45)", fontFamily: FONT_BODY, textAlign: "center" }}>
+                {cd.d > 0 ? `${cd.d} jour${cd.d > 1 ? "s" : ""} restant${cd.d > 1 ? "s" : ""}` : "Dernières heures !"}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Auto-play progress bar */}
+        {activePromos.length > 1 && (
+          <div className="promo-progress-bar">
+            <div className="promo-progress-fill" key={slideKey + "-bar"} style={{
+              animation: `promoCountdownBar ${SLIDE_DURATION}ms linear forwards`,
+            }} />
+          </div>
+        )}
+      </div>
+
+      {/* Navigation dots */}
+      {activePromos.length > 1 && (
+        <div className="promo-dots">
+          {activePromos.map((_, i) => (
+            <button
+              key={i}
+              className={`promo-dot${i === activeIdx ? " active" : ""}`}
+              onClick={() => goToSlide(i)}
+              aria-label={`Promotion ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
 // ── HOME ──
 // ══════════════════════════════════════════════
 function Home({ go, products = PRODS, categories = CATS, loading = false, promotions = [] }) {
@@ -218,7 +463,7 @@ function Home({ go, products = PRODS, categories = CATS, loading = false, promot
                 marginBottom: 28, fontFamily: FONT_BODY, backdropFilter: "blur(8px)",
                 border: "1px solid rgba(255,255,255,.1)",
               }}>
-                ⚡ Livraison gratuite à Dakar
+                ⚡ Livraison Partout
               </div>
 
               <h1 style={{
@@ -236,26 +481,19 @@ function Home({ go, products = PRODS, categories = CATS, loading = false, promot
               </p>
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 40 }}>
+                <button onClick={() => go("catalog")} className="cta-gold" style={{ fontSize: 15, padding: "14px 28px" }}>
+                  🚀 Commander maintenant
+                </button>
                 <button onClick={() => go("catalog")} style={{
-                  padding: "13px 26px", background: "#FBBF24", color: "#1E293B", border: "none",
+                  padding: "13px 22px", background: "rgba(255,255,255,.1)", color: "rgba(255,255,255,.85)", border: "1px solid rgba(255,255,255,.2)",
                   borderRadius: 14, fontWeight: 600, fontSize: 14, cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 8,
-                  boxShadow: "0 4px 20px rgba(251,191,36,.35)", fontFamily: FONT_HEADING,
-                  transition: "all 250ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  backdropFilter: "blur(8px)", fontFamily: FONT_BODY,
+                  transition: "all 250ms",
                 }}
-                  onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px) scale(1.03)"}
-                  onMouseLeave={e => e.currentTarget.style.transform = "none"}>
-                  Explorer le catalogue →
-                </button>
-                <button onClick={() => go("catalog", { cat: "Vêtements" })} style={{
-                  padding: "13px 26px", background: "rgba(255,255,255,.1)", color: "#fff",
-                  border: "1px solid rgba(255,255,255,.2)", borderRadius: 14, fontWeight: 500,
-                  fontSize: 14, cursor: "pointer", fontFamily: FONT_BODY, backdropFilter: "blur(8px)",
-                  transition: "all 200ms",
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.18)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.35)" }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.1)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.2)" }}>
-                  Mode Sénégalaise
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.18)"; e.currentTarget.style.transform = "translateY(-2px)" }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.1)"; e.currentTarget.style.transform = "none" }}>
+                  Découvrir la collection →
                 </button>
               </div>
 
@@ -318,29 +556,24 @@ function Home({ go, products = PRODS, categories = CATS, loading = false, promot
       {/* ── Main content ── */}
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(32px,6vw,56px) 16px clamp(40px,6vw,64px)" }}>
 
-        {/* Categories — Bento-style grid */}
-        <section style={{ marginBottom: 64 }}>
+        {/* Categories — Dark Glass Grid avec SVG */}
+        <section style={{ marginBottom: 64 }} aria-label="Catégories">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
             <div>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: "#0F172A", fontFamily: FONT_HEADING, letterSpacing: "-0.02em" }}>Catégories Populaires</h2>
-              <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 4, fontFamily: FONT_BODY }}>Trouvez ce qu'il vous faut</p>
+              <h2 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", fontFamily: FONT_HEADING, letterSpacing: "-0.02em" }}>Catégories Populaires</h2>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4, fontFamily: FONT_BODY }}>Trouvez ce qu'il vous faut</p>
             </div>
-            <button onClick={() => go("catalog")} style={{ fontSize: 13, fontWeight: 600, color: BLUE, border: "none", background: "none", cursor: "pointer", fontFamily: FONT_BODY, transition: "opacity 150ms" }}
-              onMouseEnter={e => e.currentTarget.style.opacity = ".7"}
-              onMouseLeave={e => e.currentTarget.style.opacity = "1"}>Voir tout →</button>
+            <button onClick={() => go("catalog")} className="see-all-btn">Voir tout →</button>
           </div>
-          <div className="cat-grid stagger" style={{ display: "grid", gap: 10 }}>
+          <div className="cat-grid stagger">
             {categories.map(c => (
-              <button key={c.id} onClick={() => go("catalog", { cat: c.name })} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 10px",
-                borderRadius: 18, border: "1px solid transparent", background: c.bg, cursor: "pointer",
-                fontFamily: FONT_BODY, transition: "all 250ms cubic-bezier(0.16, 1, 0.3, 1)",
-              }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,.08)"; e.currentTarget.style.transform = "translateY(-4px)" }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none" }}>
-                <span style={{ fontSize: 30 }}>{c.icon}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#334155", textAlign: "center", lineHeight: 1.3 }}>{c.name}</span>
-                <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 10px", borderRadius: 99, background: "rgba(255,255,255,.7)", color: c.accent }}>{c.count}</span>
+              <button key={c.id} className="cat-card-dark" onClick={() => go("catalog", { cat: c.name })}
+                aria-label={`Catégorie ${c.name}`}>
+                <div className="cat-svg-icon" style={{ background: c.iconBg || "rgba(4,58,248,0.15)", color: c.iconColor || "#60A5FA" }}>
+                  {c.svgIcon || <span style={{ fontSize: 26 }}>{c.icon}</span>}
+                </div>
+                <span className="cat-card-label">{c.name}</span>
+                <span className="cat-card-count">{c.count}</span>
               </button>
             ))}
           </div>
@@ -375,37 +608,32 @@ function Home({ go, products = PRODS, categories = CATS, loading = false, promot
           </div>
         </section>
 
-        {/* Promo banner — with diagonal vibe */}
-        <div style={{
-          borderRadius: 28, padding: "40px 40px", background: grad,
-          position: "relative", overflow: "hidden",
-        }} className="grain">
-          {/* Decorative elements */}
-          <div style={{ position: "absolute", right: -50, bottom: -50, width: 240, height: 240, borderRadius: "50%", background: "rgba(255,255,255,.06)" }} />
-          <div style={{ position: "absolute", left: -30, top: -30, width: 150, height: 150, borderRadius: "50%", background: "rgba(251,191,36,.08)" }} />
+        {/* ── Dynamic Promo Offers Carousel ── */}
+        <PromoBannerCarousel promotions={promotions} products={products} go={go} />
 
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 24, position: "relative", zIndex: 2 }}>
-            <div style={{ maxWidth: 500 }}>
-              <p style={{ color: "#FBBF24", fontWeight: 700, fontSize: 11, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: FONT_HEADING }}>
-                🎉 Offre Spéciale — Durée limitée
-              </p>
-              <h3 style={{ fontSize: "clamp(22px, 4vw, 32px)", fontWeight: 700, color: "#fff", marginBottom: 10, fontFamily: FONT_HEADING, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-                Jusqu'à <span style={{ color: "#FBBF24" }}>-30%</span> sur les Smartphones
-              </h3>
-              <p style={{ color: "rgba(255,255,255,.6)", fontSize: 14, fontFamily: FONT_BODY }}>Profitez-en avant la fin du mois !</p>
-            </div>
-            <button onClick={() => go("catalog", { cat: "Smartphones" })} style={{
-              padding: "14px 30px", background: "#FBBF24", color: "#1E293B", border: "none",
-              borderRadius: 14, fontWeight: 600, fontSize: 14, cursor: "pointer",
-              boxShadow: "0 4px 20px rgba(251,191,36,.4)", fontFamily: FONT_HEADING, flexShrink: 0,
-              transition: "all 250ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-            }}
-              onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px) scale(1.04)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "none"}>
-              Profiter →
-            </button>
+        {/* ── Pourquoi Kumpax — Trust Section ── */}
+        <section style={{ marginTop: 64 }} aria-label="Pourquoi choisir Kumpax">
+          <div style={{ textAlign: "center", marginBottom: 36 }}>
+            <h2 style={{ fontSize: 26, fontWeight: 700, color: "var(--text-primary)", fontFamily: FONT_HEADING, letterSpacing: "-0.02em", marginBottom: 8 }}>Pourquoi choisir Kumpax ?</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, fontFamily: FONT_BODY, maxWidth: 480, margin: "0 auto" }}>Nous mettons tout en œuvre pour une expérience d'achat premium.</p>
           </div>
-        </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }} className="stagger">
+            {[
+              { icon: "🚀", color: "rgba(4,58,248,0.18)", title: "Livraison Ultra-Rapide", desc: "24 à 48h à Dakar et partout au Sénégal. Suivi en temps réel." },
+              { icon: "🔒", color: "rgba(16,185,129,0.15)", title: "Paiement 100% Sécurisé", desc: "Wave, Orange Money, Yas ou Cash. Vos données sont protégées." },
+              { icon: "💎", color: "rgba(251,191,36,0.15)", title: "Produits Certifiés", desc: "Chaque produit est vérifié et garanti authentique avant expédition." },
+              { icon: "🔄", color: "rgba(139,92,246,0.15)", title: "Retour Facile", desc: "7 jours pour changer d'avis. Remboursement ou échange garanti." },
+            ].map((w, i) => (
+              <div key={i} className="why-kumpax-card">
+                <div className="why-icon-wrap" style={{ background: w.color }}>{w.icon}</div>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)", fontFamily: FONT_HEADING, marginBottom: 6 }}>{w.title}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: FONT_BODY, lineHeight: 1.6 }}>{w.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -610,7 +838,7 @@ function ProductPage({ p, go, allProducts = PRODS, promotions = [] }) {
   };
 
   return (
-    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 16px clamp(80px,15vw,48px)" }}>
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "40px 16px clamp(80px,15vw,48px)" }}>
       {/* Breadcrumb */}
       <nav aria-label="Fil d'Ariane" style={{ fontSize: 12, color: "#94A3B8", marginBottom: 24, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontFamily: FONT_BODY }}>
         <button onClick={() => go("home")} style={{ border: "none", background: "none", cursor: "pointer", color: "#94A3B8", fontSize: 12 }}>Accueil</button>
@@ -764,15 +992,40 @@ function Checkout({ go }) {
 
   useEffect(() => { setErr({}); }, [step]);
 
-  const inp = e => { setForm(f => ({ ...f, [e.target.name]: e.target.value })); setErr(er => ({ ...er, [e.target.name]: "" })); };
+  const formatPhoneForInput = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    const local = digits.startsWith("221") ? digits.slice(3) : digits;
+    const sliced = local.slice(0, 9);
+    if (!sliced) return "";
+    if (sliced.length <= 2) return sliced;
+    if (sliced.length <= 5) return `${sliced.slice(0, 2)} ${sliced.slice(2)}`;
+    if (sliced.length <= 7) return `${sliced.slice(0, 2)} ${sliced.slice(2, 5)} ${sliced.slice(5)}`;
+    return `${sliced.slice(0, 2)} ${sliced.slice(2, 5)} ${sliced.slice(5, 7)} ${sliced.slice(7)}`;
+  };
+
+  const inp = e => {
+    const { name, value } = e.target;
+    setForm(f => {
+      if (name === "telephone") return { ...f, [name]: formatPhoneForInput(value) };
+      return { ...f, [name]: value };
+    });
+    setErr(er => ({ ...er, [name]: "" }));
+  };
 
   const effectiveAdresse = form.adresse;
+  const normalizePhone = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    if (digits.startsWith("221")) return digits.slice(3, 12);
+    if (digits.startsWith("0")) return digits.slice(1, 10);
+    return digits.slice(0, 9);
+  };
+  const phoneForDisplay = normalizePhone(form.telephone);
 
   const finalizeOrder = async () => {
     setSubmitting(true);
     try {
       const res = await window.api.createOrder({
-        delivery: { ...form, adresse: effectiveAdresse },
+        delivery: { ...form, telephone: phoneForDisplay, adresse: effectiveAdresse },
         items: items.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
         payMethod: "cod", deliveryMode: "home",
         payProvider: null,
@@ -792,7 +1045,7 @@ function Checkout({ go }) {
   const validate = () => {
     const e = {};
     if (!form.nomComplet.trim()) e.nomComplet = "Requis";
-    if (!/^\d{9}$/.test(form.telephone.replace(/\s/g, ""))) e.telephone = "9 chiffres requis";
+    if (!/^\d{9}$/.test(phoneForDisplay)) e.telephone = "Numéro invalide (ex: 77 123 45 67 ou +221771234567)";
     if (!form.adresse.trim()) e.adresse = "Requise";
     setErr(e);
     if (Object.keys(e).length) { push("Veuillez corriger les erreurs", "error"); return false; }
@@ -816,7 +1069,7 @@ function Checkout({ go }) {
       <div style={{ maxWidth: 420, width: "100%", textAlign: "center" }}>
         <div style={{ width: 76, height: 76, borderRadius: "50%", background: "#10B981", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", fontSize: 38, color: "#fff", boxShadow: "0 8px 24px rgba(16,185,129,.3)" }}>✓</div>
         <h2 style={{ fontSize: 26, fontWeight: 700, color: "#0F172A", marginBottom: 12, fontFamily: FONT_HEADING, letterSpacing: "-0.02em" }}>Commande enregistrée ! 🎉</h2>
-        <p style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6, marginBottom: 24, fontFamily: FONT_BODY }}>Merci <strong>{form.nomComplet}</strong> ! Vous recevrez un SMS de confirmation au <strong>+221 {form.telephone}</strong>.</p>
+        <p style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6, marginBottom: 24, fontFamily: FONT_BODY }}>Merci <strong>{form.nomComplet}</strong> ! Vous recevrez un SMS de confirmation au <strong>+221 {phoneForDisplay}</strong>.</p>
         <div style={{ background: "#EFF6FF", borderRadius: 18, padding: 18, textAlign: "left", marginBottom: 24 }}>
           <p style={{ fontSize: 15, fontWeight: 700, color: DARK_BLUE, marginBottom: 12, fontFamily: FONT_HEADING }}>
             {orderId.current ? `Réf : ${orderId.current}` : "Commande en cours de traitement"}
@@ -868,7 +1121,8 @@ function Checkout({ go }) {
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#94A3B8", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: FONT_HEADING }}>Nom complet *</label>
                 <input name="nomComplet" value={form.nomComplet} onChange={inp} placeholder="Moussa Diallo"
-                  style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1px solid ${err.nomComplet ? "#FCA5A5" : "#E2E8F0"}`, fontSize: 14, fontFamily: FONT_BODY, background: err.nomComplet ? "#FFF5F5" : "#fff" }} />
+                  className="input-light"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1px solid ${err.nomComplet ? "#FCA5A5" : "#E2E8F0"}`, fontSize: 14, fontFamily: FONT_BODY, background: err.nomComplet ? "#FFF5F5" : "#fff", color: "#0F172A", caretColor: "#1E40AF" }} />
                 {err.nomComplet && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: FONT_BODY }}>{err.nomComplet}</p>}
               </div>
 
@@ -878,7 +1132,10 @@ function Checkout({ go }) {
                   <div style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#F8FAFC", fontSize: 13, color: "#64748B", flexShrink: 0, display: "flex", alignItems: "center", gap: 4, fontFamily: FONT_BODY }}>🇸🇳 +221</div>
                   <div style={{ flex: 1 }}>
                     <input name="telephone" value={form.telephone} onChange={inp} placeholder="77 000 00 00"
-                      style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1px solid ${err.telephone ? "#FCA5A5" : "#E2E8F0"}`, fontSize: 14, fontFamily: FONT_BODY }} />
+                      className="input-light"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1px solid ${err.telephone ? "#FCA5A5" : "#E2E8F0"}`, fontSize: 14, fontFamily: FONT_BODY, color: "#0F172A", caretColor: "#1E40AF" }} />
                     {err.telephone && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: FONT_BODY }}>{err.telephone}</p>}
                   </div>
                 </div>
@@ -888,7 +1145,8 @@ function Checkout({ go }) {
                 <>
                   <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#94A3B8", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: FONT_HEADING }}>Adresse de livraison *</label>
                   <input name="adresse" value={form.adresse} onChange={inp} placeholder="Rue, numéro, quartier, Dakar..."
-                    style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1px solid ${err.adresse ? "#FCA5A5" : "#E2E8F0"}`, fontSize: 14, fontFamily: FONT_BODY, background: err.adresse ? "#FFF5F5" : "#fff" }} />
+                    className="input-light"
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 12, border: `1px solid ${err.adresse ? "#FCA5A5" : "#E2E8F0"}`, fontSize: 14, fontFamily: FONT_BODY, background: err.adresse ? "#FFF5F5" : "#fff", color: "#0F172A", caretColor: "#1E40AF" }} />
                   {err.adresse && <p style={{ fontSize: 11, color: "#EF4444", marginTop: 4, fontFamily: FONT_BODY }}>{err.adresse}</p>}
                 </>
               </div>
@@ -905,12 +1163,33 @@ function Checkout({ go }) {
               <h2 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 18, fontFamily: FONT_HEADING }}>📋 Récapitulatif final</h2>
               <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 14, marginBottom: 18 }}>
                 {[
-                  ["Client", form.nomComplet], ["Téléphone", `+221 ${form.telephone}`],
+                  ["Client", form.nomComplet || "Non renseigné"], ["Téléphone", phoneForDisplay ? `+221 ${phoneForDisplay}` : "Non renseigné"],
                   ["Adresse", effectiveAdresse || form.adresse],
-                ].map(([k, v]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, fontSize: 13, fontFamily: FONT_BODY }}>
-                    <span style={{ color: "#94A3B8" }}>{k}</span>
-                    <span style={{ fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>{v}</span>
+                  ["Mode de paiement", "Paiement à la livraison"],
+                  ["Livraison", "À domicile (24–48h)"],
+                ].map(([k, v], idx, arr) => (
+                  <div key={k} style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(110px, 140px) 1fr",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "7px 0",
+                    borderBottom: idx < arr.length - 1 ? "1px dashed #E2E8F0" : "none",
+                    fontSize: 13,
+                    fontFamily: FONT_BODY
+                  }}>
+                    <span style={{ color: "#64748B", fontWeight: 600 }}>{k}</span>
+                    <span style={{
+                      fontWeight: 700,
+                      textAlign: "right",
+                      justifySelf: "end",
+                      maxWidth: "100%",
+                      color: "#0F172A",
+                      background: "#FFFFFF",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 10,
+                      padding: "4px 8px"
+                    }}>{v}</span>
                   </div>
                 ))}
               </div>
@@ -920,7 +1199,9 @@ function Checkout({ go }) {
                     <SafeImg src={item.img} alt={item.name} style={{ width: 40, height: 40, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 12, fontWeight: 600, fontFamily: FONT_BODY, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
-                      <p style={{ fontSize: 11, color: "#94A3B8", fontFamily: FONT_BODY }}>× {item.qty}</p>
+                      <p style={{ fontSize: 11, color: "#94A3B8", fontFamily: FONT_BODY }}>
+                        {fmt(item.price)} × {item.qty}
+                      </p>
                     </div>
                     <p style={{ fontSize: 12, fontWeight: 700, color: BLUE, flexShrink: 0, fontFamily: FONT_HEADING }}>{fmt(item.price * item.qty)}</p>
                   </div>

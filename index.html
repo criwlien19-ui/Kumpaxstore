@@ -5,11 +5,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- SEO -->
-  <title>Kumpax Store — Shopping Premium au Sénégal</title>
+  <!-- SEO Primaire -->
+  <title>Kumpax Store — Shopping Premium au Sénégal | Livraison 24-48h</title>
   <meta name="description"
-    content="Kumpax Store — Le shopping premium au Sénégal. Smartphones, vêtements, électroménager et plus, livrés en 24-48h à Dakar et partout au Sénégal." />
-  <meta name="theme-color" content="#1E40AF" />
+    content="Kumpax Store — Le shopping premium au Sénégal. Smartphones, vêtements, électroménager et plus, livrés en 24-48h à Dakar et partout au Sénégal. Paiement Wave, Orange Money & Cash." />
+  <meta name="keywords" content="shopping sénégal, dakar, livraison rapide, smartphones, vêtements, électroménager, kumpax" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="Kumpax Store" />
+  <meta name="theme-color" content="#043AF8" />
+  <link rel="canonical" href="https://kumpax.store/" />
+
+  <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/kumpax-logo.png" />
   <link rel="shortcut icon" type="image/png" href="assets/kumpax-logo.png" />
   <link rel="apple-touch-icon" href="assets/kumpax-logo.png" />
@@ -20,19 +26,78 @@
   <meta property="og:description"
     content="Des milliers de produits authentiques et importés, livrés chez vous en 24-48h. Paiement Wave, Orange Money & Cash." />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://kumpax.store/" />
   <meta property="og:locale" content="fr_SN" />
+  <meta property="og:site_name" content="Kumpax Store" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Kumpax Store — Shopping Premium au Sénégal" />
+  <meta name="twitter:description" content="Livraison 24-48h à Dakar. Paiement Wave, Orange Money & Cash." />
 
   <!-- Performance: Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://images.unsplash.com" />
 
-  <!-- Google Fonts: Space Grotesk (headings) + DM Sans (body) -->
+  <!-- Google Fonts: Space Grotesk + DM Sans + Poppins (CTA) -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Poppins:wght@600;700;800&display=swap"
     rel="stylesheet" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Schema.org JSON-LD — Organization + WebSite -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "Kumpax Store",
+        "url": "https://kumpax.store",
+        "description": "Le shopping premium au Sénégal. Livraison 24-48h à Dakar.",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Dakar",
+          "addressCountry": "SN"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+221783849197",
+          "contactType": "customer service",
+          "availableLanguage": "French"
+        },
+        "sameAs": [
+          "https://www.facebook.com/kumpaxstore",
+          "https://www.instagram.com/kumpaxstore"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "name": "Kumpax Store",
+        "url": "https://kumpax.store",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://kumpax.store/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "OnlineStore",
+        "name": "Kumpax Store",
+        "url": "https://kumpax.store",
+        "currenciesAccepted": "XOF",
+        "paymentAccepted": "Wave, Orange Money, Cash",
+        "areaServed": {
+          "@type": "Country",
+          "name": "Sénégal"
+        }
+      }
+    ]
+  }
+  </script>
 
   <!-- React & Babel (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -48,7 +113,6 @@
     window.USE_ODOO = true;
     const hostname = window.location.hostname;
     const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
-    // In production, call the co-deployed API on the same origin.
     window.API_URL = isLocal ? "http://" + hostname + ":3001" : window.location.origin;
   </script>
 

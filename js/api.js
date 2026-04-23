@@ -173,8 +173,8 @@ const api = {
   async adminGetProductsLite(search = "", limit = 500) {
     const qs = new URLSearchParams({ search, limit }).toString();
     const lite = await this._request(`${API_URL}/api/admin/products/min?${qs}`, { headers: this._getAdminHeaders() });
-    if (lite.success) return lite;
-    // Fallback robuste si route non redémarrée ou indisponible
+    if (lite && lite.success !== false) return { success: true, data: Array.isArray(lite) ? lite : lite.data };
+    // Fallback si la route /min n'existe pas
     return this.adminGetProducts(search, limit, 0);
   },
 
@@ -209,8 +209,13 @@ const api = {
     });
   },
 
-  async adminGetOrders(state = "all", limit = 100, offset = 0) {
-    const qs = new URLSearchParams({ state, limit, offset }).toString();
+  async adminGetOrders(filters = {}) {
+    const payload = typeof filters === "string"
+      ? { state: filters, limit: 100, offset: 0 }
+      : { state: "all", limit: 100, offset: 0, ...filters };
+    const qs = new URLSearchParams(
+      Object.entries(payload).filter(([, v]) => v !== undefined && v !== null && v !== "")
+    ).toString();
     return this._request(`${API_URL}/api/admin/orders?${qs}`, { headers: this._getAdminHeaders() });
   },
 
@@ -219,6 +224,14 @@ const api = {
       method: "PATCH",
       headers: this._getAdminHeaders(),
       body: JSON.stringify({ state })
+    });
+  },
+
+  async adminBulkUpdateOrderStatus(ids = [], state) {
+    return this._request(`${API_URL}/api/admin/orders/bulk-status`, {
+      method: "PATCH",
+      headers: this._getAdminHeaders(),
+      body: JSON.stringify({ ids, state })
     });
   },
 

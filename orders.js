@@ -5,16 +5,8 @@ const router = express.Router();
 // États Odoo autorisés (whitelist de sécurité)
 const ALLOWED_STATES = new Set(["draft", "sale", "done", "cancel"]);
 
-// Middleware d'authentification admin
-const checkAdminAuth = (req, res, next) => {
-  const token = req.headers["authorization"] || req.headers["x-admin-token"];
-  const expectedToken = process.env.ADMIN_TOKEN;
-
-  if (!expectedToken || token !== expectedToken) {
-    return res.status(401).json({ success: false, error: "Non autorisé : Token admin invalide ou manquant." });
-  }
-  next();
-};
+// Utilise le même middleware JWT que admin.routes.js
+const { verifyAdminJWT } = require("./admin.auth");
 
 module.exports = (orderService) => {
   function normalizeItems(items) {
@@ -115,7 +107,7 @@ module.exports = (orderService) => {
   });
 
   // GET /api/orders?limit=&offset=&state=
-  router.get("/", checkAdminAuth, async (req, res) => {
+  router.get("/", verifyAdminJWT, async (req, res) => {
     try {
       const { limit = 50, offset = 0, state } = req.query;
 
@@ -147,7 +139,7 @@ module.exports = (orderService) => {
   });
 
   // PATCH /api/orders/:id/status
-  router.patch("/:id/status", checkAdminAuth, async (req, res) => {
+  router.patch("/:id/status", verifyAdminJWT, async (req, res) => {
     try {
       const { state } = req.body;
       const orderId = parseInt(req.params.id);

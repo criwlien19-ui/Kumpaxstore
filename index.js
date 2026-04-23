@@ -25,7 +25,18 @@ app.use(morgan("dev"));
 app.use(compression());
 
 // ── Sécurité HTTP (headers) ────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      connectSrc: ["'self'", "https:", "http:"],
+    },
+  },
+}));
 
 // ── Rate Limiting : 200 req / 15 min par IP ────────────────
 const limiter = rateLimit({

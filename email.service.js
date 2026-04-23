@@ -68,7 +68,7 @@ class EmailService {
 
             <h3 style="border-bottom: 2px solid #FBBF24; padding-bottom: 5px;">👤 Informations Client</h3>
             <ul style="list-style: none; padding: 0;">
-              <li><strong>Nom :</strong> ${delivery.prenom}</li>
+              <li><strong>Nom :</strong> ${delivery.nomComplet || delivery.prenom || 'Client'}</li>
               <li><strong>Téléphone :</strong> +221 ${delivery.telephone}</li>
               <li><strong>Adresse :</strong> ${delivery.adresse}</li>
             </ul>

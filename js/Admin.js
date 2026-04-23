@@ -1,9 +1,4 @@
-// Standard React hooks from global scope
-const { useState, useEffect, useCallback, useMemo } = React;
-// Use global fmt if defined, otherwise define fallback
-const fmt = window.fmt || (p => (p || 0).toLocaleString('fr-FR') + ' FCFA');
-// Use global useToast from context
-const useToast = window.useToast || (() => ({ push: console.log }));
+// Admin.js — uses globals: React hooks from components.js, fmt from data.js, useToast from contexts.js
 
 /* ═══════════════════════════════════════════════
    KUMPAX STORE — Admin Panel (JWT + Odoo)
@@ -186,8 +181,10 @@ function AdminApp({ onExit }) {
           <NavBtn id="promotions" ic="🏷️" label="Promotions" />
         </nav>
         <div style={{ padding: 12, borderTop: "1px solid #f1f5f9" }}>
-          <button onClick={onExit} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 10, border: "none", background: "#fef2f2", color: "#ef4444", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-            🚪 Déconnexion
+          <button
+            onClick={() => { if (window.confirm("Se déconnecter de l'admin Kumpax ?")) onExit(); }}
+            style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 10, border: "none", background: "#fef2f2", color: "#ef4444", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            🚩 Déconnexion
           </button>
         </div>
       </aside>
@@ -212,7 +209,7 @@ function AdminApp({ onExit }) {
         </div>
 
         <div style={{ padding: 24, flex: 1 }}>
-          {tab === "dash" && stats && <AdminDashboard stats={stats} chart={chart} />}
+          {tab === "dash" && (stats ? <AdminDashboard stats={stats} chart={chart} /> : <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:60,color:'#94a3b8',fontSize:13,fontWeight:600}}>⏳ Chargement du tableau de bord...</div>)}
           {tab === "products" && <AdminProducts products={products} refresh={loadProducts} />}
           {tab === "orders" && <AdminOrders orders={orders} refresh={loadOrders} />}
           {tab === "customers" && <AdminCustomers customers={customers} />}
@@ -226,8 +223,8 @@ function AdminApp({ onExit }) {
 // ─── 1. Tableau de Bord ──────────────────────────────────────────
 function AdminDashboard({ stats, chart }) {
   const Kpis = [
-    { l: "Chiffre d'affaires", v: fmt(stats.revenue), ch: stats.revGrowth ? `+${stats.revGrowth}% MoM` : null, bg: "#eff6ff", c: "#1d4ed8", ic: "📊" },
-    { l: "Commandes confirmées", v: stats.ordersConfirmed, ch: `${stats.ordersThisMonth} ce mois`, bg: "#f0fdf4", c: "#059669", ic: "🛍" },
+    { l: "Chiffre d'affaires", v: fmt(stats.revenue), ch: stats.revGrowth ? `+${parseFloat(stats.revGrowth)}% MoM` : null, bg: "#eff6ff", c: "#1d4ed8", ic: "📊" },
+    { l: "Commandes aujourd'hui", v: stats.ordersToday ?? 0, ch: `${stats.ordersThisMonth || 0} ce mois`, bg: "#f0fdf4", c: "#059669", ic: "🛘" },
     { l: "Produits en ligne", v: stats.productCount, bg: "#fffbeb", c: "#d97706", ic: "📦" },
     { l: "Clients (Odoo)", v: stats.customerCount, bg: "#f5f3ff", c: "#7c3aed", ic: "👥" },
   ];
@@ -264,12 +261,9 @@ function SalesChart({ data }) {
       {data.map((d, i) => {
         const height = (d.amount / max) * 100 + "%";
         return (
-          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, group: "true", position: "relative" }}>
-            {/* Tooltip on hover */}
-            <div style={{ opacity: 0, position: "absolute", top: -30, background: "#1e293b", color: "#fff", fontSize: 10, padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap", pointerEvents: "none", transition: "opacity .2s" }}
-              onMouseEnter={e => e.currentTarget.style.opacity = 1}
-              onMouseLeave={e => e.currentTarget.style.opacity = 0}
-            >
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, position: "relative" }}>
+            {/* Tooltip on hover — events are on the bar below */}
+            <div style={{ opacity: 0, position: "absolute", top: -30, background: "#1e293b", color: "#fff", fontSize: 10, padding: "4px 8px", borderRadius: 6, whiteSpace: "nowrap", pointerEvents: "none", transition: "opacity .2s" }}>
               {fmt(d.amount)}
             </div>
             <div style={{ width: "100%", background: "#e2e8f0", borderRadius: 4, height: 140, display: "flex", alignItems: "flex-end", overflow: "hidden" }}
@@ -288,7 +282,7 @@ function SalesChart({ data }) {
 // ─── 2. Produits & Stocks ───────────────────────────────────────
 function AdminProducts({ products, refresh }) {
   const { push } = useToast();
-  const [showAdd, setShowAdd] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
   const [cats, setCats] = useState([]);
 
   // Nouveau produit
@@ -322,6 +316,19 @@ function AdminProducts({ products, refresh }) {
     else push(r.error, "error");
   };
 
+  const handleEditProduct = async (p) => {
+    const name = prompt("Nom du produit :", p.name);
+    if (name === null) return; // annulé
+    const priceStr = prompt("Prix de vente (FCFA) :", p.list_price);
+    if (priceStr === null) return;
+    const price = parseFloat(priceStr);
+    if (!name.trim()) return push("Le nom est obligatoire", "warn");
+    if (!Number.isFinite(price) || price < 0) return push("Prix invalide", "warn");
+    const r = await window.api.adminUpdateProduct(p.id, { name: name.trim(), list_price: price });
+    if (r.success) { push("Produit mis à jour"); refresh(); }
+    else push(r.error, "error");
+  };
+
   const handleArchive = async (id) => {
     if (!window.confirm("Archiver ce produit dans Odoo ?")) return;
     const r = await window.api.adminArchiveProduct(id);
@@ -329,13 +336,20 @@ function AdminProducts({ products, refresh }) {
     else push(r.error, "error");
   };
 
+  const [searchProd, setSearchProd] = useState("");
+  const filtered = products.filter(p => !searchProd || p.name.toLowerCase().includes(searchProd.toLowerCase()));
+
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-        <p style={{ fontSize: 12, fontWeight: 700 }}>{products.length} Produits Odoo actifs</p>
-        <button onClick={() => setShowAdd(!showAdd)} style={{ background: showAdd ? "#e2e8f0" : "#1E40AF", color: showAdd ? "#000" : "#fff", border: "none", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
-          {showAdd ? "Fermer" : "+ Nouveau produit"}
-        </button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+        <p style={{ fontSize: 12, fontWeight: 700 }}>{filtered.length}/{products.length} Produits Odoo actifs</p>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input placeholder="🔍 Rechercher un produit..." value={searchProd} onChange={e => setSearchProd(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11, minWidth: 180 }} />
+          <button onClick={refresh} style={{ background: "#e2e8f0", color: "#0f172a", border: "none", padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🔄 Rafraîchir</button>
+          <button onClick={() => setShowAdd(!showAdd)} style={{ background: showAdd ? "#e2e8f0" : "#1E40AF", color: showAdd ? "#000" : "#fff", border: "none", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>
+            {showAdd ? "Fermer" : "+ Nouveau produit"}
+          </button>
+        </div>
       </div>
 
       {showAdd && (
@@ -366,7 +380,7 @@ function AdminProducts({ products, refresh }) {
             </tr>
           </thead>
           <tbody>
-            {products.map(p => (
+            {filtered.map(p => (
               <tr key={p.id} style={{ borderTop: "1px solid #f1f5f9" }}>
                 <td style={{ padding: 12, color: "#94a3b8" }}>#{p.id}</td>
                 <td style={{ padding: 12, fontWeight: 600 }}>
@@ -382,6 +396,7 @@ function AdminProducts({ products, refresh }) {
                   </span>
                 </td>
                 <td style={{ padding: 12, textAlign: "right" }}>
+                  <button onClick={() => handleEditProduct(p)} style={{ background: "none", border: "none", color: "#1E40AF", cursor: "pointer", marginRight: 8 }}>Modifier ✏️</button>
                   <button onClick={() => handleArchive(p.id)} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer" }}>Archiver 🗑</button>
                 </td>
               </tr>
@@ -397,19 +412,44 @@ function AdminProducts({ products, refresh }) {
 function AdminOrders({ orders, refresh }) {
   const { push } = useToast();
   const [invoiceRefs, setInvoiceRefs] = useState({});
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkState, setBulkState] = useState("sale");
+  const [displayedOrders, setDisplayedOrders] = useState(orders || []);
+  const [filters, setFilters] = useState({
+    state: "all",
+    customer: "",
+    dateFrom: "",
+    dateTo: "",
+    minTotal: "",
+    maxTotal: "",
+  });
+  const [loadingFilters, setLoadingFilters] = useState(false);
 
   useEffect(() => {
     const nextRefs = {};
-    orders.forEach(o => {
-      nextRefs[o.id] = o.invoice_reference || o.invoiceRef || o.invoice_ref || "";
+    (orders || []).forEach(o => {
+      nextRefs[o.id] = o.invoiceReference || o.invoice_reference || o.invoiceRef || o.invoice_ref || "";
     });
     setInvoiceRefs(nextRefs);
+    setSelectedIds(prev => prev.filter(id => (orders || []).some(o => o.id === id)));
+    setDisplayedOrders(orders || []);
   }, [orders]);
 
   const handleStatusChange = async (id, state) => {
+    // Mise à jour optimiste de l'UI
+    setDisplayedOrders(prev => prev.map(o => 
+      o.id === id ? { ...o, rawState: state, status: statusOpts.find(x => x.v === state)?.l || state } : o
+    ));
+
     const r = await window.api.adminUpdateOrderStatus(id, state);
-    if (r.success) { push("Statut mis à jour"); refresh(); }
-    else push(r.error, "error");
+    if (r.success) { 
+      push("Statut mis à jour"); 
+      refresh(); 
+    } else { 
+      push(r.error, "error"); 
+      refresh(); // Revert on failure
+    }
   };
 
   const handleInvoiceRefSave = async (id) => {
@@ -430,89 +470,303 @@ function AdminOrders({ orders, refresh }) {
     { v: "cancel", l: "Annulée" }
   ];
 
+  const applyFilters = async () => {
+    setLoadingFilters(true);
+    const r = await window.api.adminGetOrders(filters);
+    if (r.success) {
+      setDisplayedOrders(r.data || []);
+      setSelectedIds([]);
+      push("Filtres appliqués");
+    } else push(r.error || "Impossible de filtrer les commandes", "error");
+    setLoadingFilters(false);
+  };
+
+  const resetFilters = async () => {
+    const init = { state: "all", customer: "", dateFrom: "", dateTo: "", minTotal: "", maxTotal: "" };
+    setFilters(init);
+    setLoadingFilters(true);
+    const r = await window.api.adminGetOrders(init);
+    if (r.success) {
+      setDisplayedOrders(r.data || []);
+      setSelectedIds([]);
+      push("Filtres réinitialisés");
+    } else push(r.error || "Impossible de réinitialiser les filtres", "error");
+    setLoadingFilters(false);
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === displayedOrders.length) setSelectedIds([]);
+    else setSelectedIds(displayedOrders.map(o => o.id));
+  };
+
+  const handleBulkStatus = async () => {
+    if (!selectedIds.length) return push("Sélectionne au moins une commande", "warn");
+    
+    // Mise à jour optimiste
+    setDisplayedOrders(prev => prev.map(o => 
+      selectedIds.includes(o.id) ? { ...o, rawState: bulkState, status: statusOpts.find(x => x.v === bulkState)?.l || bulkState } : o
+    ));
+
+    const r = await window.api.adminBulkUpdateOrderStatus(selectedIds, bulkState);
+    if (r.success) {
+      push(`Statut mis à jour pour ${r.data?.updated || selectedIds.length} commande(s)`);
+      setSelectedIds([]);
+      refresh();
+    } else {
+      push(r.error || "Échec de la mise à jour en masse", "error");
+      refresh(); // Revert
+    }
+  };
+
+  const exportCSV = () => {
+    if (!displayedOrders.length) return push("Aucune commande à exporter", "warn");
+    const headers = ["Réf","Date","Client","Téléphone","Adresse","Articles","Total (FCFA)","Paiement","Statut","Note","Réf Facture"];
+    const rows = displayedOrders.map(o => [
+      o.ref, o.date,
+      `"${(o.customer||'').replace(/"/g,'""')}"`,
+      `"${(o.telephone||'').replace(/"/g,'""')}"`,
+      `"${(o.adresse||'').replace(/"/g,'""')}"`,
+      o.lines?.length || o.items || 0,
+      o.total, `"${(o.payMethod||'').replace(/"/g,'""')}"`, o.status,
+      `"${(o.note||'').replace(/"/g,'""')}"`, `"${(o.invoiceReference||'').replace(/"/g,'""')}"`
+    ]);
+    const csv = [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `kumpax-commandes-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    push(`${displayedOrders.length} commande(s) exportées`);
+  };
+
   return (
-    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <p style={{ fontSize: 12, fontWeight: 700 }}>{displayedOrders.length} Commande(s)</p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={refresh} style={{ background: "#e2e8f0", color: "#0f172a", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>🔄 Rafraîchir</button>
+          <button onClick={exportCSV} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>📥 Export CSV</button>
+        </div>
+      </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0,1fr))", gap: 8 }}>
+          <select value={filters.state} onChange={e => setFilters({ ...filters, state: e.target.value })} style={{ padding: 8, borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11 }}>
+            <option value="all">Tous statuts</option>
+            {statusOpts.map(opt => <option key={opt.v} value={opt.v}>{opt.l}</option>)}
+          </select>
+          <input placeholder="Client..." value={filters.customer} onChange={e => setFilters({ ...filters, customer: e.target.value })} style={{ padding: 8, borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11 }} />
+          <input type="date" value={filters.dateFrom} onChange={e => setFilters({ ...filters, dateFrom: e.target.value })} style={{ padding: 8, borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11 }} />
+          <input type="date" value={filters.dateTo} onChange={e => setFilters({ ...filters, dateTo: e.target.value })} style={{ padding: 8, borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11 }} />
+          <input type="number" placeholder="Min FCFA" value={filters.minTotal} onChange={e => setFilters({ ...filters, minTotal: e.target.value })} style={{ padding: 8, borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11 }} />
+          <input type="number" placeholder="Max FCFA" value={filters.maxTotal} onChange={e => setFilters({ ...filters, maxTotal: e.target.value })} style={{ padding: 8, borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11 }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button onClick={applyFilters} disabled={loadingFilters} style={{ background: "#1e40af", color: "#fff", border: "none", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+              {loadingFilters ? "Filtrage..." : "Appliquer filtres"}
+            </button>
+            <button onClick={resetFilters} disabled={loadingFilters} style={{ background: "#e2e8f0", color: "#0f172a", border: "none", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+              Réinitialiser
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "#475569", fontWeight: 700 }}>{selectedIds.length} sélectionnée(s)</span>
+            <select value={bulkState} onChange={e => setBulkState(e.target.value)} style={{ padding: 7, borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11 }}>
+              {statusOpts.map(opt => <option key={opt.v} value={opt.v}>{opt.l}</option>)}
+            </select>
+            <button onClick={handleBulkStatus} style={{ background: "#059669", color: "#fff", border: "none", borderRadius: 8, padding: "7px 10px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+              Action en masse
+            </button>
+          </div>
+        </div>
+      {/* === TABLE COMMANDES === */}
+      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", overflow: "hidden" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
         <thead style={{ background: "#f8fafc", color: "#64748b", textTransform: "uppercase" }}>
           <tr>
+            <th style={{ padding: 12, textAlign: "center" }}>
+              <input type="checkbox" checked={displayedOrders.length > 0 && selectedIds.length === displayedOrders.length} onChange={toggleSelectAll} />
+            </th>
+            <th style={{ padding: 12, textAlign: "left" }}>Détails</th>
             <th style={{ padding: 12, textAlign: "left" }}>Réf (Odoo)</th>
             <th style={{ padding: 12, textAlign: "left" }}>Date</th>
             <th style={{ padding: 12, textAlign: "left" }}>Client</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Téléphone</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Adresse</th>
+            <th style={{ padding: 12, textAlign: "center" }}>Articles</th>
             <th style={{ padding: 12, textAlign: "left" }}>Total</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Paiement</th>
             <th style={{ padding: 12, textAlign: "left" }}>Réf facture Odoo</th>
-            <th style={{ padding: 12, textAlign: "center" }}>Statut Actuel</th>
-            <th style={{ padding: 12, textAlign: "right" }}>Action</th>
+            <th style={{ padding: 12, textAlign: "center" }}>Statut</th>
           </tr>
         </thead>
         <tbody>
-          {orders.map(o => (
-            <tr key={o.id} style={{ borderTop: "1px solid #f1f5f9" }}>
-              <td style={{ padding: 12, fontWeight: 700 }}>{o.ref}</td>
-              <td style={{ padding: 12, color: "#94a3b8" }}>{o.date}</td>
-              <td style={{ padding: 12, fontWeight: 600 }}>{o.customer}</td>
-              <td style={{ padding: 12, fontWeight: 700, color: "#1E40AF" }}>{fmt(o.total)}</td>
-              <td style={{ padding: 12 }}>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <input
-                    value={invoiceRefs[o.id] || ""}
-                    onChange={e => setInvoiceRefs(prev => ({ ...prev, [o.id]: e.target.value }))}
-                    placeholder="Ex: INV/2026/0012"
-                    style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 10, minWidth: 140 }}
-                  />
-                  <button
-                    onClick={() => handleInvoiceRefSave(o.id)}
-                    style={{ background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 10, cursor: "pointer", fontWeight: 700 }}
-                  >
-                    Enregistrer
-                  </button>
-                </div>
-              </td>
-              <td style={{ padding: 12, textAlign: "center" }}>
-                <span style={{
-                  padding: "4px 8px", borderRadius: 99, fontSize: 9, fontWeight: 700,
-                  background: o.rawState === "sale" ? "#dbeafe" : o.rawState === "done" ? "#d1fae5" : o.rawState === "cancel" ? "#fee2e2" : "#f1f5f9",
-                  color: o.rawState === "sale" ? "#1d4ed8" : o.rawState === "done" ? "#047857" : o.rawState === "cancel" ? "#dc2626" : "#475569"
-                }}>
-                  {o.status}
-                </span>
-              </td>
-              <td style={{ padding: 12, textAlign: "right" }}>
-                <select value={o.rawState} onChange={e => handleStatusChange(o.id, e.target.value)} style={{ padding: 4, borderRadius: 4, border: "1px solid #ccc", fontSize: 10 }}>
-                  {statusOpts.map(opt => <option key={opt.v} value={opt.v}>{opt.l}</option>)}
-                </select>
-              </td>
-            </tr>
-          ))}
+          {displayedOrders.map(o => {
+            const isExpanded = expandedOrderId === o.id;
+            return (
+              <React.Fragment key={o.id}>
+                <tr style={{ borderTop: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: 12, textAlign: "center" }}>
+                    <input type="checkbox" checked={selectedIds.includes(o.id)} onChange={() => toggleSelect(o.id)} />
+                  </td>
+                  <td style={{ padding: 12 }}>
+                    <button
+                      onClick={() => setExpandedOrderId(isExpanded ? null : o.id)}
+                      style={{ border: "1px solid #cbd5e1", background: "#fff", borderRadius: 6, cursor: "pointer", fontSize: 10, padding: "4px 8px", fontWeight: 700 }}
+                    >
+                      {isExpanded ? "Masquer" : "Voir"}
+                    </button>
+                  </td>
+                  <td style={{ padding: 12, fontWeight: 700 }}>{o.ref}</td>
+                  <td style={{ padding: 12, color: "#94a3b8" }}>{o.date}</td>
+                  <td style={{ padding: 12, fontWeight: 600 }}>{o.customer}</td>
+                  <td style={{ padding: 12, color: "#1E40AF", fontWeight: 600 }}>{o.telephone || <span style={{ color: "#cbd5e1" }}>—</span>}</td>
+                  <td style={{ padding: 12, color: "#475569", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={o.adresse}>{o.adresse || <span style={{ color: "#cbd5e1" }}>—</span>}</td>
+                  <td style={{ padding: 12, textAlign: "center", color: "#334155", fontWeight: 700 }}>{o.lines?.length || o.items || 0}</td>
+                  <td style={{ padding: 12, fontWeight: 700, color: "#1E40AF" }}>{fmt(o.total)}</td>
+                  <td style={{ padding: 12, color: "#475569", fontSize: 10 }}>{o.payMethod || <span style={{ color: "#cbd5e1" }}>—</span>}</td>
+                  <td style={{ padding: 12 }}>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input
+                        value={invoiceRefs[o.id] || ""}
+                        onChange={e => setInvoiceRefs(prev => ({ ...prev, [o.id]: e.target.value }))}
+                        placeholder="Ex: INV/2026/0012"
+                        style={{ padding: "6px 8px", borderRadius: 6, border: "1px solid #cbd5e1", fontSize: 10, minWidth: 140 }}
+                      />
+                      <button
+                        onClick={() => handleInvoiceRefSave(o.id)}
+                        style={{ background: "#0ea5e9", color: "#fff", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 10, cursor: "pointer", fontWeight: 700 }}
+                      >
+                        Enregistrer
+                      </button>
+                    </div>
+                  </td>
+                  <td style={{ padding: 12, textAlign: "center" }}>
+                    <select 
+                      value={o.rawState} 
+                      onChange={e => handleStatusChange(o.id, e.target.value)} 
+                      style={{ 
+                        padding: "4px 8px", 
+                        borderRadius: 99, 
+                        fontSize: 10, 
+                        fontWeight: 700,
+                        border: "1px solid transparent",
+                        cursor: "pointer",
+                        outline: "none",
+                        background: o.rawState === "sale" ? "#dbeafe" : o.rawState === "done" ? "#d1fae5" : o.rawState === "cancel" ? "#fee2e2" : "#f1f5f9",
+                        color: o.rawState === "sale" ? "#1d4ed8" : o.rawState === "done" ? "#047857" : o.rawState === "cancel" ? "#dc2626" : "#475569"
+                      }}
+                    >
+                      {statusOpts.map(opt => <option key={opt.v} value={opt.v}>{opt.l}</option>)}
+                    </select>
+                  </td>
+                </tr>
+                {isExpanded && (
+                  <tr style={{ background: "#f8fafc" }}>
+                    <td colSpan={12} style={{ padding: 12 }}>
+                      <div style={{ border: "1px solid #e2e8f0", borderRadius: 10, background: "#fff", padding: 12 }}>
+                        <p style={{ fontSize: 11, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>Détails de commande</p>
+                        {/* Delivery info parsed from note */}
+                        {!!o.note && (() => {
+                          const lines = o.note.split("\n").filter(Boolean);
+                          return (
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12, padding: 10, background: "#f8fafc", borderRadius: 8, fontSize: 11 }}>
+                              {lines.map((line, idx) => {
+                                const [label, ...rest] = line.split(":");
+                                const value = rest.join(":").trim();
+                                if (!value) return <p key={idx} style={{ gridColumn: "1/-1", color: "#475569" }}>{line}</p>;
+                                return (
+                                  <div key={idx}>
+                                    <span style={{ color: "#94a3b8", fontWeight: 600 }}>{label.trim()}:</span>{" "}
+                                    <span style={{ color: "#0f172a", fontWeight: 700 }}>{value}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                        {!!o.lines?.length ? (
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                            <thead>
+                              <tr style={{ background: "#f8fafc" }}>
+                                <th style={{ padding: 8, textAlign: "left" }}>Produit</th>
+                                <th style={{ padding: 8, textAlign: "right" }}>Qté</th>
+                                <th style={{ padding: 8, textAlign: "right" }}>PU</th>
+                                <th style={{ padding: 8, textAlign: "right" }}>Sous-total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {o.lines.map(line => (
+                                <tr key={line.id} style={{ borderTop: "1px solid #f1f5f9" }}>
+                                  <td style={{ padding: 8, color: "#334155" }}>{line.name}</td>
+                                  <td style={{ padding: 8, textAlign: "right" }}>{line.qty}</td>
+                                  <td style={{ padding: 8, textAlign: "right" }}>{fmt(line.unitPrice)}</td>
+                                  <td style={{ padding: 8, textAlign: "right", fontWeight: 700, color: "#1e40af" }}>{fmt(line.subtotal)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <p style={{ fontSize: 11, color: "#94a3b8" }}>Aucun détail de ligne disponible.</p>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }
 
 // ─── 4. Clients ───────────────────────────────────────────────
 function AdminCustomers({ customers }) {
+  const [searchCust, setSearchCust] = useState("");
+  const filtered = customers.filter(c => {
+    if (!searchCust) return true;
+    const q = searchCust.toLowerCase();
+    return (c.name||"").toLowerCase().includes(q) || (c.phone||"").includes(q) || (c.email||"").toLowerCase().includes(q);
+  });
+
   return (
-    <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", overflow: "hidden" }}>
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <p style={{ fontSize: 12, fontWeight: 700 }}>{filtered.length}/{customers.length} Clients Odoo</p>
+        <input placeholder="🔍 Rechercher un client..." value={searchCust} onChange={e => setSearchCust(e.target.value)} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 11, minWidth: 200 }} />
+      </div>
+      <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", overflow: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
         <thead style={{ background: "#f8fafc", color: "#64748b", textTransform: "uppercase" }}>
           <tr>
             <th style={{ padding: 12, textAlign: "left" }}>ID Odoo</th>
             <th style={{ padding: 12, textAlign: "left" }}>Nom</th>
             <th style={{ padding: 12, textAlign: "left" }}>Téléphone</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Email</th>
+            <th style={{ padding: 12, textAlign: "left" }}>Adresse</th>
             <th style={{ padding: 12, textAlign: "left" }}>Inscription</th>
           </tr>
         </thead>
         <tbody>
-          {customers.map(c => (
+          {filtered.map(c => (
             <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9" }}>
               <td style={{ padding: 12, color: "#94a3b8" }}>#{c.id}</td>
               <td style={{ padding: 12, fontWeight: 600 }}>{c.name}</td>
               <td style={{ padding: 12, color: "#1E40AF" }}>{c.phone}</td>
+              <td style={{ padding: 12, color: "#64748b" }}>{c.email || "—"}</td>
+              <td style={{ padding: 12, color: "#64748b" }}>{[c.street, c.city].filter(Boolean).join(", ") || "—"}</td>
               <td style={{ padding: 12, color: "#94a3b8" }}>{c.create_date ? c.create_date.split(" ")[0] : "—"}</td>
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }

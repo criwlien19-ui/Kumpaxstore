@@ -25,6 +25,44 @@ const router  = express.Router();
 const { checkCredentials, generateToken, verifyAdminJWT } = require("./admin.auth");
 const { normalizePromo, readPromotions, writePromotions } = require("./promotions.store");
 
+function parseInvoiceReferenceFromNote(note) {
+  const text = String(note || "");
+  const match = text.match(/^\[INVOICE_REF:([^\]]*)\]\s*/);
+  return match ? match[1].trim() : "";
+}
+
+/**
+ * Extrait les infos de livraison depuis la note structurée Odoo.
+ * Format attendu (créé par order.service.js) :
+ *   Mode livraison: Livraison à domicile\n
+ *   Adresse: Rue X, Dakar\n
+ *   Téléphone: +221 77 000 00 00\n
+ *   Paiement: À la livraison (Cash)
+ */
+function parseDeliveryNote(rawNote) {
+  const note = String(rawNote || "").replace(/^\[INVOICE_REF:[^\]]*\]\s*/, "");
+  const result = { adresse: "", telephone: "", payMethod: "", deliveryMode: "" };
+  note.split("\n").forEach(line => {
+    // On sépare au premier ":" uniquement
+    const colonIdx = line.indexOf(":");
+    if (colonIdx < 0) return;
+    const key = line.slice(0, colonIdx).trim().toLowerCase();
+    const val = line.slice(colonIdx + 1).trim();
+    if (key === "adresse") result.adresse = val;
+    else if (key === "téléphone" || key === "telephone") result.telephone = val;
+    else if (key === "paiement") result.payMethod = val;
+    else if (key === "mode livraison") result.deliveryMode = val;
+  });
+  return result;
+}
+
+function upsertInvoiceReferenceInNote(note, invoiceReference) {
+  const cleanedNote = String(note || "").replace(/^\[INVOICE_REF:[^\]]*\]\s*/,"").trim();
+  const cleanedRef = String(invoiceReference || "").trim();
+  if (!cleanedRef) return cleanedNote;
+  return `[INVOICE_REF:${cleanedRef}]${cleanedNote ? ` ${cleanedNote}` : ""}`;
+}
+
 function validatePromotionWindow(promo) {
   const hasStart = !!promo.startAt;
   const hasEnd = !!promo.endAt;
@@ -129,6 +167,10 @@ module.exports = (odoo, productService, orderService) => {
       const revLastMonth  = lastMonth.filter(o => ["sale","done"].includes(o.state)).reduce((s,o) => s+o.amount_total, 0);
       const revGrowth     = revLastMonth > 0 ? (((revThisMonth - revLastMonth) / revLastMonth) * 100).toFixed(1) : null;
 
+      // Commandes du jour
+      const today = now.toISOString().split("T")[0];
+      const ordersToday = orders.filter(o => o.date_order && o.date_order.startsWith(today));
+
       res.json({
         success: true,
         data: {
@@ -137,6 +179,7 @@ module.exports = (odoo, productService, orderService) => {
           ordersTotal:       orders.length,
           ordersThisMonth:   thisMonth.length,
           ordersConfirmed:   confirmedOrders.length,
+          ordersToday:       ordersToday.length,
           productCount:      products,
           customerCount:     partners,
           ordersByStatus: {
@@ -371,22 +414,7 @@ module.exports = (odoo, productService, orderService) => {
 
       const locationId = locations[0].id;
 
-      // 3. Met à jour via stock.quant (méthode correcte Odoo)
-      await odoo.callKw({
-        model: "stock.quant",
-        method: "create",
-        args: [],
-        kwargs: {
-          vals: {
-            product_id:  productId,
-            location_id: locationId,
-            inventory_quantity: newQty,
-          }
-        }
-      });
-
-      // Alternative si create ne suffit pas : utilise _update_available_quantity via action "Apply All"
-      // On utilise d'abord la méthode la plus simple disponible sur Odoo 16/17
+      // 3. Cherche d'abord un quant existant (évite les doublons)
       const quants = await odoo.searchRead({
         model: "stock.quant",
         domain: [
@@ -410,6 +438,23 @@ module.exports = (odoo, productService, orderService) => {
           method: "action_apply_inventory",
           ids: [quants[0].id],
         });
+      } else {
+        // Crée un nouveau quant seulement s'il n'existe pas
+        const newQuantId = await odoo.callKw({
+          model: "stock.quant",
+          method: "create",
+          args: [{
+            product_id:  productId,
+            location_id: locationId,
+            inventory_quantity: newQty,
+          }],
+        });
+        // Applique l'inventaire sur le nouveau quant
+        await odoo.execute({
+          model: "stock.quant",
+          method: "action_apply_inventory",
+          ids: [newQuantId],
+        });
       }
 
       console.log(`[Admin] Stock ajusté: product.template=${productTemplateId}, product.product=${productId}, qty=${newQty}`);
@@ -425,9 +470,18 @@ module.exports = (odoo, productService, orderService) => {
   // ══════════════════════════════════════════════════════════
   router.get("/orders", async (req, res) => {
     try {
-      const { limit = 100, offset = 0, state } = req.query;
+      const { limit = 100, offset = 0, state, customer = "", minTotal, maxTotal, dateFrom, dateTo } = req.query;
       const domain = [];
       if (state && state !== "all") domain.push(["state", "=", state]);
+      if (customer) domain.push(["partner_id.name", "ilike", customer]);
+      if (minTotal !== undefined && minTotal !== "" && !Number.isNaN(Number(minTotal))) {
+        domain.push(["amount_total", ">=", Number(minTotal)]);
+      }
+      if (maxTotal !== undefined && maxTotal !== "" && !Number.isNaN(Number(maxTotal))) {
+        domain.push(["amount_total", "<=", Number(maxTotal)]);
+      }
+      if (dateFrom) domain.push(["date_order", ">=", `${dateFrom} 00:00:00`]);
+      if (dateTo) domain.push(["date_order", "<=", `${dateTo} 23:59:59`]);
 
       const orders = await odoo.searchRead({
         model: "sale.order",
@@ -437,25 +491,97 @@ module.exports = (odoo, productService, orderService) => {
         offset: parseInt(offset),
         order: "date_order desc",
       });
+      const orderIds = orders.map(o => o.id).filter(Boolean);
+      let lineMap = {};
+      if (orderIds.length) {
+        const lines = await odoo.searchRead({
+          model: "sale.order.line",
+          domain: [["order_id", "in", orderIds]],
+          fields: ["id", "order_id", "name", "product_uom_qty", "price_unit", "price_subtotal"],
+          limit: 5000,
+          order: "id asc",
+        });
+        lineMap = lines.reduce((acc, line) => {
+          const orderId = Array.isArray(line.order_id) ? line.order_id[0] : line.order_id;
+          if (!orderId) return acc;
+          if (!acc[orderId]) acc[orderId] = [];
+          acc[orderId].push({
+            id: line.id,
+            name: line.name || "Produit",
+            qty: Number(line.product_uom_qty || 0),
+            unitPrice: Number(line.price_unit || 0),
+            subtotal: Number(line.price_subtotal || 0),
+          });
+          return acc;
+        }, {});
+      }
 
       const stateLabels = { draft:"Brouillon", sent:"Envoyée", sale:"Confirmée", done:"Livrée", cancel:"Annulée" };
-      const mapped = orders.map(o => ({
-        id:       o.id,
-        ref:      o.name,
-        customer: Array.isArray(o.partner_id) ? o.partner_id[1] : "",
-        total:    o.amount_total,
-        status:   stateLabels[o.state] || o.state,
-        rawState: o.state,
-        date:     o.date_order ? o.date_order.split(" ")[0] : "",
-        items:    o.order_line?.length || 0,
-        note:     o.note || "",
-      }));
+      const mapped = orders.map(o => {
+        let rawNote = String(o.note || "").replace(/<[^>]+>/g, "").trim();
+        let isDone = false;
+        
+        // Extraction du tag virtuel pour le statut Livrée
+        if (rawNote.includes("[STATUS:done]")) {
+          isDone = true;
+          rawNote = rawNote.replace(/\[STATUS:done\]/g, "").trim();
+        }
+
+        const cleanNote = rawNote.replace(/^\[INVOICE_REF:[^\]]*\]\s*/, "");
+        const delivery = parseDeliveryNote(rawNote);
+        const actualState = isDone ? "done" : o.state;
+
+        return {
+          id:           o.id,
+          ref:          o.name,
+          customer:     Array.isArray(o.partner_id) ? o.partner_id[1] : "",
+          total:        o.amount_total,
+          status:       stateLabels[actualState] || actualState,
+          rawState:     actualState,
+          date:         o.date_order ? o.date_order.split(" ")[0] : "",
+          items:        o.order_line?.length || 0,
+          note:         cleanNote,
+          invoiceReference: parseInvoiceReferenceFromNote(o.note),
+          lines:        lineMap[o.id] || [],
+          // Champs livraison extraits de la note structurée
+          adresse:      delivery.adresse,
+          telephone:    delivery.telephone,
+          payMethod:    delivery.payMethod,
+          deliveryMode: delivery.deliveryMode,
+        };
+      });
 
       res.json({ success: true, data: mapped });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
   });
+
+  // ══════════════════════════════════════════════════════════
+  // HELPER : Changement de statut avec support du statut virtuel "done"
+  // ══════════════════════════════════════════════════════════
+  async function changeOrderStatus(odooId, state) {
+    const orders = await odoo.searchRead({ model: "sale.order", domain: [["id", "=", odooId]], fields: ["note"], limit: 1 });
+    if (!orders.length) return;
+    let note = orders[0].note || "";
+
+    if (state === "done") {
+      // Pour "Livrée", on s'assure que la commande est confirmée (sale) puis on ajoute le tag
+      await odoo.execute({ model: "sale.order", method: "action_confirm", ids: [odooId] }).catch(() => {});
+      if (!note.includes("[STATUS:done]")) {
+        await odoo.write({ model: "sale.order", ids: [odooId], values: { note: (note + "\n[STATUS:done]").trim() } });
+      }
+    } else {
+      // On retire le tag virtuel s'il existe
+      if (note.includes("[STATUS:done]")) {
+        await odoo.write({ model: "sale.order", ids: [odooId], values: { note: note.replace(/\n?\[STATUS:done\]/g, "").trim() } });
+      }
+      const methodMap = { cancel: "action_cancel", draft: "action_draft", sale: "action_confirm" };
+      if (methodMap[state]) {
+        await odoo.execute({ model: "sale.order", method: methodMap[state], ids: [odooId] });
+      }
+    }
+  }
 
   // ══════════════════════════════════════════════════════════
   // PATCH /api/admin/orders/:id/status — Changer statut commande
@@ -471,12 +597,60 @@ module.exports = (odoo, productService, orderService) => {
         return res.status(400).json({ success: false, error: `État invalide. Valeurs : ${[...ALLOWED_STATES].join(", ")}` });
       }
 
-      const methodMap = { cancel:"action_cancel", draft:"action_draft", sale:"action_confirm", done:"action_done" };
-      if (methodMap[state]) {
-        await odoo.execute({ model:"sale.order", method:methodMap[state], ids:[odooId] });
-      }
+      await changeOrderStatus(odooId, state);
       console.log(`[Admin] Commande ${odooId} → ${state}`);
       res.json({ success: true, data: { odooId, state } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // PATCH /api/admin/orders/bulk-status — MAJ statut en masse
+  // ══════════════════════════════════════════════════════════
+  router.patch("/orders/bulk-status", async (req, res) => {
+    try {
+      const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(n => parseInt(n)).filter(Boolean) : [];
+      const state = req.body?.state;
+      if (!ids.length) {
+        return res.status(400).json({ success: false, error: "Aucune commande sélectionnée." });
+      }
+      if (!state || !ALLOWED_STATES.has(state)) {
+        return res.status(400).json({ success: false, error: `État invalide. Valeurs : ${[...ALLOWED_STATES].join(", ")}` });
+      }
+      
+      for (const id of ids) {
+        await changeOrderStatus(id, state);
+      }
+      res.json({ success: true, data: { ids, state, updated: ids.length } });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // PATCH /api/admin/orders/:id/invoice-reference
+  // ══════════════════════════════════════════════════════════
+  router.patch("/orders/:id/invoice-reference", async (req, res) => {
+    try {
+      const odooId = parseInt(req.params.id);
+      const invoiceReference = String(req.body?.invoiceReference || "").trim();
+      if (!odooId || isNaN(odooId)) return res.status(400).json({ success: false, error: "ID commande invalide." });
+
+      const rows = await odoo.read({
+        model: "sale.order",
+        ids: [odooId],
+        fields: ["note"],
+      });
+      if (!rows?.length) return res.status(404).json({ success: false, error: "Commande introuvable." });
+
+      const nextNote = upsertInvoiceReferenceInNote(rows[0].note || "", invoiceReference);
+      await odoo.write({
+        model: "sale.order",
+        ids: [odooId],
+        values: { note: nextNote },
+      });
+      res.json({ success: true, data: { odooId, invoiceReference } });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }

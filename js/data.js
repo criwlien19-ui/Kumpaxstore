@@ -11,6 +11,8 @@ const PLACEHOLDER = "https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w
 // ── Typographie ──
 const FONT_HEADING = "'Space Grotesk', sans-serif";
 const FONT_BODY = "'DM Sans', sans-serif";
+const FONT_CTA = "'Poppins', 'Space Grotesk', sans-serif";
+
 
 // ── Modes de livraison ──
 const DELIVERY_MODES = [
@@ -34,21 +36,67 @@ const PAYMENT_PROVIDERS = [
   { id: "yas",          label: "Yas",          color: "#7C3AED", bg: "#F3EEFF", emoji: "💜" },
 ];
 
-// ── Catégories avec sous-catégories ──
+// ── Catégories avec sous-catégories + icônes SVG ──
 const CATS = [
-  { id: 1, name: "Smartphones",    icon: "📱", bg: "#EFF6FF", accent: "#1E40AF", count: 24,
+  { id: 1, name: "Smartphones",    icon: "📱", iconBg: "rgba(59,130,246,0.18)",   iconColor: "#60A5FA",
+    svgIcon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+        <line x1="12" y1="18" x2="12.01" y2="18" strokeWidth="2"/>
+      </svg>
+    ),
+    bg: "#EFF6FF", accent: "#1E40AF", count: 24,
     subcategories: ["iPhone", "Samsung", "Xiaomi", "Tablettes"] },
-  { id: 2, name: "Vêtements",      icon: "👕", bg: "#F0FDF4", accent: "#166534", count: 56,
+  { id: 2, name: "Vêtements",      icon: "👕", iconBg: "rgba(16,185,129,0.15)",  iconColor: "#34D399",
+    svgIcon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z"/>
+      </svg>
+    ),
+    bg: "#F0FDF4", accent: "#166534", count: 56,
     subcategories: ["Boubous", "Robes Wax", "Djellabas", "Accessoires"] },
-  { id: 3, name: "Électroménager", icon: "🏠", bg: "#FFF7ED", accent: "#9A3412", count: 18,
+  { id: 3, name: "Électroménager", icon: "🏠", iconBg: "rgba(249,115,22,0.15)",  iconColor: "#FB923C",
+    svgIcon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+    ),
+    bg: "#FFF7ED", accent: "#9A3412", count: 18,
     subcategories: ["Réfrigérateurs", "Machines à laver", "Climatiseurs", "Cuisinières"] },
-  { id: 4, name: "TV & Audio",     icon: "📺", bg: "#FDF4FF", accent: "#7E22CE", count: 12,
+  { id: 4, name: "TV & Audio",     icon: "📺", iconBg: "rgba(139,92,246,0.15)",  iconColor: "#A78BFA",
+    svgIcon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+        <polyline points="17 2 12 7 7 2"/>
+      </svg>
+    ),
+    bg: "#FDF4FF", accent: "#7E22CE", count: 12,
     subcategories: ["Téléviseurs", "Écouteurs", "Enceintes", "Home Cinéma"] },
-  { id: 5, name: "Beauté",         icon: "💄", bg: "#FFF1F2", accent: "#BE123C", count: 34,
+  { id: 5, name: "Beauté",         icon: "💄", iconBg: "rgba(236,64,122,0.15)",  iconColor: "#F472B6",
+    svgIcon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+    ),
+    bg: "#FFF1F2", accent: "#BE123C", count: 34,
     subcategories: ["Soins Visage", "Parfums", "Maquillage", "Soins Cheveux"] },
-  { id: 6, name: "Alimentation",   icon: "🛒", bg: "#F0FDFA", accent: "#0F766E", count: 67,
+  { id: 6, name: "Alimentation",   icon: "🛒", iconBg: "rgba(20,184,166,0.15)",  iconColor: "#2DD4BF",
+    svgIcon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.98-1.61L23 6H6"/>
+      </svg>
+    ),
+    bg: "#F0FDFA", accent: "#0F766E", count: 67,
     subcategories: ["Épicerie", "Boissons", "Bio & Santé", "Import"] },
 ];
+
+// ── Helper : viewers aléatoires par produit (stable via seed) ──
+const getViewers = (productId) => Math.floor(7 + ((productId * 13) % 24));
+
 
 // ── Produits ──
 const PRODS = [
@@ -76,7 +124,7 @@ const INIT_ORDERS = [
 ];
 
 // ── Formatage prix ──
-const fmt = p => p.toLocaleString("fr-FR") + " FCFA";
+const fmt = p => (Number.isFinite(+p) ? (+p).toLocaleString("fr-FR") : "—") + " FCFA";
 
 // ── Promotions helpers ──
 function getPromotionForProduct(product, promotions = []) {

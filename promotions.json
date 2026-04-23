@@ -1,29 +1,10 @@
 [
   {
-    "id": "promo_1776259471647_283",
-    "title": "MEGAXEEWEULL",
-    "message": "Profitez de cette offre de reduction",
-    "discountType": "percent",
-    "discountValue": 20,
-    "scope": "products",
-    "category": "Accessoires",
-    "productIds": [
-      4
-    ],
-    "popupEnabled": true,
-    "active": true,
-    "startAt": "2026-04-15T13:25",
-    "endAt": "2026-04-17T13:24",
-    "ctaLabel": "Voir l'offre",
-    "updatedAt": "2026-04-15T13:24:31.647Z",
-    "createdAt": "2026-04-15T13:24:31.647Z"
-  },
-  {
-    "id": "promo_1776259089104_314",
-    "title": "xeeweul",
-    "message": "Profite de 10% de reduction",
-    "discountType": "percent",
-    "discountValue": 10,
+    "id": "promo_1776901137447_10",
+    "title": "MEGA",
+    "message": "PROMO",
+    "discountType": "amount",
+    "discountValue": 1250,
     "scope": "products",
     "category": "",
     "productIds": [
@@ -31,10 +12,10 @@
     ],
     "popupEnabled": true,
     "active": true,
-    "startAt": "2026-04-15T13:17",
-    "endAt": "2026-04-16T13:18",
+    "startAt": "2026-04-22T23:38",
+    "endAt": "2026-04-23T23:38",
     "ctaLabel": "Voir l'offre",
-    "updatedAt": "2026-04-15T13:18:09.104Z",
-    "createdAt": "2026-04-15T13:18:09.104Z"
+    "updatedAt": "2026-04-22T23:38:57.447Z",
+    "createdAt": "2026-04-22T23:38:57.447Z"
   }
 ]
